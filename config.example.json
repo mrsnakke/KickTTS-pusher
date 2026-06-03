@@ -1,0 +1,13 @@
+{
+  "KICK_CHATROOM_ID": "",
+  "PUSHER_KEY": "32cbd69e4b950bf97679",
+  "YOUTUBE_CHANNEL_ID": "",
+  "SPEAKERBOT_URL": "ws://127.0.0.1:7580/",
+  "VOICE_NAME": "Grim",
+  "COMMAND": "!sp",
+  "VOICE_ALIASES": {
+    "grim": "Grim",
+    "sabina": "Sabina"
+  },
+  "MAX_TEXT_LENGTH": 200
+}

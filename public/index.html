@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kick & YouTube TTS App</title>
+    <!-- Tailwind CSS (Dark Mode Activada) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        kick: '#53fc18',
+                        darkBg: '#080a0d',
+                        darkCard: '#111519',
+                        darkInput: '#181d24'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        html, body {
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111519;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #202730;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2f3a47;
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #53fc18;
+            color: #53fc18;
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-gray-200 font-sans min-h-screen flex items-center justify-center antialiased overflow-hidden p-0 select-none">
+
+    <!-- Main Container Layout (Fluid, sin marcos ni barras de desplazamiento dobles) -->
+    <div class="w-full h-full bg-darkCard flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Left Side: Config (Pestañas) -->
+        <section class="w-full md:w-[320px] border-r border-gray-800/80 flex flex-col h-full bg-darkCard/95">
+            <!-- Tabs Header -->
+            <div class="flex border-b border-gray-800 bg-gray-950/40 text-xs font-semibold">
+                <button onclick="switchTab('tab-principal')" id="btn-tab-principal" class="tab-btn active flex-1 py-3 text-center transition duration-150 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Principal</span>
+                </button>
+                <button onclick="switchTab('tab-avanzado')" id="btn-tab-avanzado" class="tab-btn flex-1 py-3 text-center text-gray-400 hover:text-white transition duration-150 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-gears"></i>
+                    <span>Avanzado</span>
+                </button>
+            </div>
+
+            <!-- Form/Content Container -->
+            <form id="config-form" onsubmit="saveConfig(event)" class="flex-1 flex flex-col justify-between p-3.5 space-y-3.5 text-xs overflow-y-auto">
+                
+                <!-- PESTAÑA PRINCIPAL -->
+                <div id="tab-principal" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium">Comando TTS</label>
+                            <input type="text" id="cfg-command" required placeholder="Ej: !sp" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium">Voz Principal</label>
+                            <select id="cfg-voice" required 
+                                    class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2 text-white focus:outline-none focus:border-kick transition duration-150">
+                                <option value="Grim">Grim</option>
+                                <option value="Sabina">Sabina</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                            <span>Alias de Voces (alias: voz)</span>
+                            <span class="text-[10px] text-kick">Ej. sabina: Sabina</span>
+                        </label>
+                        <textarea id="cfg-voice-aliases" rows="5" placeholder="grim: Grim&#10;sabina: Sabina" 
+                                  class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white font-mono text-xs focus:outline-none focus:border-kick transition duration-150 resize-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                            <span>Filtro de Palabras Prohibidas</span>
+                            <span class="text-[10px] text-red-400">Una palabra por línea</span>
+                        </label>
+                        <textarea id="cfg-banned-words" rows="4" placeholder="Ej:&#10;palabra1&#10;palabra2" 
+                                  class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white font-mono text-xs focus:outline-none focus:border-kick transition duration-150 resize-none"></textarea>
+                    </div>
+
+                    <!-- Botones de Control de Servicio Compactos -->
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" id="btn-start" onclick="toggleBot(true)" class="flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-2 rounded transition duration-150 shadow-md">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Iniciar</span>
+                        </button>
+                        <button type="button" id="btn-stop" onclick="toggleBot(false)" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
+                            <i class="fa-solid fa-square"></i>
+                            <span>Detener</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PESTAÑA AVANZADO -->
+                <div id="tab-avanzado" class="space-y-3.5 hidden">
+                    <!-- Sección Kick -->
+                    <div class="space-y-2.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-kick">Configuración de Kick</span>
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                                <span>ID de Chatroom de Kick</span>
+                                <a href="https://kick.com/api/v2/channels/mrsnakevt" target="_blank" class="text-[10px] text-kick hover:underline flex items-center space-x-0.5">
+                                    <span>Abrir Enlace</span>
+                                    <i class="fa-solid fa-external-link w-2.5 h-2.5"></i>
+                                </a>
+                            </label>
+                            <input type="text" id="cfg-chatroom-id" required placeholder="Ej: 4523166" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium">Clave de Pusher (Kick)</label>
+                            <input type="text" id="cfg-pusher-key" required placeholder="32cbd69e4b950bf97679" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white font-mono text-[10px] focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+                    </div>
+
+                    <!-- Sección YouTube -->
+                    <div class="border-t border-gray-800 pt-3 space-y-2.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-red-500">Configuración de YouTube</span>
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                                <span>ID de Canal o Video de YouTube</span>
+                                <span class="text-[10px] text-gray-500">UC... o ID de Video</span>
+                            </label>
+                            <input type="text" id="cfg-youtube-channel-id" placeholder="Ej: UC-g8fA6XkY9-TCS3uB_ZvXQ o ID de live" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+                    </div>
+
+                    <!-- Sección Común -->
+                    <div class="border-t border-gray-800 pt-3 space-y-2.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">Configuración Común</span>
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium">URL de Speaker.bot</label>
+                            <input type="text" id="cfg-speakerbot-url" required placeholder="ws://127.0.0.1:7580/" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                                <span>Cantidad Máxima de Caracteres</span>
+                                <span class="text-[10px] text-gray-500">0 para sin límite</span>
+                            </label>
+                            <input type="number" id="cfg-max-text-length" required min="0" placeholder="Ej: 200" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Save Button -->
+                <div class="pt-2 border-t border-gray-800 flex justify-end">
+                    <button type="submit" class="w-full flex items-center justify-center space-x-1.5 bg-darkInput hover:bg-gray-800 border border-gray-700 hover:border-gray-600 text-white font-semibold py-1.5 rounded transition duration-200 shadow">
+                        <i class="fa-solid fa-save"></i>
+                        <span>Guardar Configuración</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Right Side: Terminal / Log (Consola) -->
+        <section class="flex-1 flex flex-col bg-gray-950/25 h-full overflow-hidden">
+            
+            <!-- Compact Console Header containing indicators and statuses -->
+            <div class="bg-gray-900/60 px-4 py-3 border-b border-gray-800 flex items-center justify-between text-xs font-mono">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                    <span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span>
+                    <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                    <span class="text-gray-400 font-bold ml-1.5 flex items-center">
+                        <i class="fa-solid fa-terminal mr-1.5 text-gray-500"></i>
+                        MONITOR
+                    </span>
+                </div>
+
+                <!-- Unified Status indicators packed right inside console header -->
+                <div class="flex items-center space-x-3 text-[10px] text-gray-400">
+                    <!-- Kick Status -->
+                    <div class="flex items-center space-x-1 bg-darkBg px-2 py-0.5 rounded-full border border-gray-800">
+                        <span class="relative flex h-1.5 w-1.5">
+                            <span id="kick-dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span id="kick-dot" class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+                        </span>
+                        <span id="kick-status" class="text-red-400 font-bold">KICK</span>
+                    </div>
+
+                    <!-- Latency indicator -->
+                    <div class="flex items-center space-x-1 bg-darkBg px-2 py-0.5 rounded-full border border-gray-800">
+                        <span id="ping-time" class="text-gray-400">-- ms</span>
+                    </div>
+
+                    <!-- Speaker.bot status -->
+                    <span id="speakerbot-status-indicator" class="flex items-center text-[10px]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-500 inline-block mr-1"></span>
+                        SP.BOT
+                    </span>
+
+                    <button onclick="clearConsole()" class="text-gray-500 hover:text-white transition duration-150 pl-1" title="Limpiar Consola">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages Logs -->
+            <div id="console-logs" class="flex-1 p-4 font-mono text-xs overflow-y-auto space-y-2">
+                <div class="text-gray-500 flex items-start">
+                    <span class="text-kick mr-1.5">›</span>
+                    <span>Consola inicializada. Listo para recibir y procesar comandos de chat en vivo...</span>
+                </div>
+            </div>
+
+            <!-- Compact Console Footer -->
+            <div class="bg-gray-900/30 px-4 py-2 border-t border-gray-800 flex justify-between items-center text-[10px] text-gray-500 font-mono">
+                <span id="msg-counter">Mensajes: 0</span>
+                <span id="tts-counter">Voz: 0</span>
+                <span>mrsnakevt tts v1.2</span>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Script de Frontend -->
+    <script>
+        let ws;
+        let messageCount = 0;
+        let ttsCount = 0;
+
+        // Cambiar pestañas
+        function switchTab(tabId) {
+            document.getElementById('tab-principal').classList.add('hidden');
+            document.getElementById('tab-avanzado').classList.add('hidden');
+            document.getElementById('btn-tab-principal').classList.remove('active');
+            document.getElementById('btn-tab-principal').classList.add('text-gray-400');
+            document.getElementById('btn-tab-avanzado').classList.remove('active');
+            document.getElementById('btn-tab-avanzado').classList.add('text-gray-400');
+
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('btn-' + tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.remove('text-gray-400');
+        }
+
+        // Conectar con el WebSocket interno de Node.js
+        function connectToWS() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                log('🔌 Conectado al backend local.', 'system');
+                ws.send(JSON.stringify({ type: 'get_config' }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'config') {
+                        loadConfigToUI(data.config, data.bannedWords);
+                    }
+                    else if (data.type === 'status_update') {
+                        updateStatusUI(data.status);
+                    }
+                    else if (data.type === 'log') {
+                        log(data.message, data.logType, data.user, data.metadata);
+                    }
+                    else if (data.type === 'ping_pong') {
+                        const latency = Date.now() - data.timestamp;
+                        document.getElementById('ping-time').innerText = `${latency} ms`;
+                    }
+                } catch (e) {
+                    console.error('Error parseando websocket backend:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                log('⚠️ Conexión perdida con el backend. Reconectando en 3s...', 'error');
+                updateStatusUI({ active: false, kickConnected: false });
+                setTimeout(connectToWS, 3000);
+            };
+        }
+
+        // Registrar un mensaje en la consola web con soporte para iconos de plataforma
+        function log(message, type = 'info', user = null, metadata = null) {
+            const consoleBox = document.getElementById('console-logs');
+            const logRow = document.createElement('div');
+            logRow.className = 'flex items-start border-l-2 pl-2.5 transition duration-150 py-0.5 ';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const timeSpan = `<span class="text-gray-600 mr-2 shrink-0 select-none">[${timestamp}]</span>`;
+
+            if (type === 'system') {
+                logRow.className += 'border-blue-500 text-blue-400 bg-blue-950/10';
+                logRow.innerHTML = `${timeSpan}<span class="text-blue-500 mr-2 font-bold">[SYS]</span><span>${message}</span>`;
+            } else if (type === 'error') {
+                logRow.className += 'border-red-500 text-red-400 bg-red-950/10';
+                logRow.innerHTML = `${timeSpan}<span class="text-red-500 mr-2 font-bold">[ERR]</span><span>${message}</span>`;
+            } else if (type === 'success') {
+                logRow.className += 'border-kick text-green-400 bg-kick/5';
+                logRow.innerHTML = `${timeSpan}<span class="text-kick mr-2 font-bold">[OK]</span><span>${message}</span>`;
+            } 
+            // Mensajes TTS Kick
+            else if (type === 'chat_tts_kick') {
+                logRow.className += 'border-kick text-white bg-kick/10 font-medium text-[13px]';
+                ttsCount++;
+                document.getElementById('tts-counter').innerText = `Voz: ${ttsCount}`;
+                logRow.innerHTML = `
+                    ${timeSpan}
+                    <span class="text-kick mr-1.5 flex items-center inline-flex shrink-0">
+                        <i class="fa-solid fa-volume-high mr-1"></i>
+                        <strong>${user}:</strong>
+                    </span>
+                    <span class="text-gray-100">${message}</span>
+                `;
+            } 
+            // Mensajes TTS YouTube
+            else if (type === 'chat_tts_youtube') {
+                logRow.className += 'border-red-500 text-white bg-red-950/10 font-medium text-[13px]';
+                ttsCount++;
+                document.getElementById('tts-counter').innerText = `Voz: ${ttsCount}`;
+                logRow.innerHTML = `
+                    ${timeSpan}
+                    <span class="text-red-500 mr-1.5 flex items-center inline-flex shrink-0">
+                        <i class="fa-brands fa-youtube mr-1"></i>
+                        <strong>${user}:</strong>
+                    </span>
+                    <span class="text-gray-100">${message}</span>
+                `;
+            } 
+            // Mensajes ordinarios de Kick
+            else if (type === 'chat_message_kick') {
+                logRow.className += 'border-gray-700 text-gray-500';
+                messageCount++;
+                document.getElementById('msg-counter').innerText = `Mensajes: ${messageCount}`;
+                logRow.innerHTML = `
+                    ${timeSpan}
+                    <span class="text-kick/60 mr-1.5 shrink-0"><i class="fa-solid fa-comments"></i></span>
+                    <span class="text-gray-400 mr-1.5"><strong>${user}:</strong></span>
+                    <span class="text-gray-400">${message}</span>
+                `;
+            }
+            // Mensajes ordinarios de YouTube
+            else if (type === 'chat_message_youtube') {
+                logRow.className += 'border-gray-700 text-gray-500';
+                messageCount++;
+                document.getElementById('msg-counter').innerText = `Mensajes: ${messageCount}`;
+                logRow.innerHTML = `
+                    ${timeSpan}
+                    <span class="text-red-500/60 mr-1.5 shrink-0"><i class="fa-brands fa-youtube"></i></span>
+                    <span class="text-gray-400 mr-1.5"><strong>${user}:</strong></span>
+                    <span class="text-gray-400">${message}</span>
+                `;
+            } else {
+                logRow.className += 'border-gray-800 text-gray-400';
+                logRow.innerHTML = `${timeSpan}<span>${message}</span>`;
+            }
+
+            consoleBox.appendChild(logRow);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-logs').innerHTML = '';
+            messageCount = 0;
+            ttsCount = 0;
+            document.getElementById('msg-counter').innerText = `Mensajes: 0`;
+            document.getElementById('tts-counter').innerText = `Voz: 0`;
+            log('Consola vaciada.', 'info');
+        }
+
+        // Cargar datos a los inputs de la UI
+        function loadConfigToUI(config, bannedWords = []) {
+            document.getElementById('cfg-chatroom-id').value = config.KICK_CHATROOM_ID || '';
+            document.getElementById('cfg-pusher-key').value = config.PUSHER_KEY || '32cbd69e4b950bf97679';
+            document.getElementById('cfg-youtube-channel-id').value = config.YOUTUBE_CHANNEL_ID || '';
+            document.getElementById('cfg-speakerbot-url').value = config.SPEAKERBOT_URL || 'ws://127.0.0.1:7580/';
+            document.getElementById('cfg-voice').value = config.VOICE_NAME || 'Grim';
+            document.getElementById('cfg-command').value = config.COMMAND || '!sp';
+            document.getElementById('cfg-max-text-length').value = config.MAX_TEXT_LENGTH !== undefined ? config.MAX_TEXT_LENGTH : 200;
+
+            // Cargar Alias de Voces en formato de texto amigable
+            let aliasesText = '';
+            if (config.VOICE_ALIASES) {
+                aliasesText = Object.entries(config.VOICE_ALIASES)
+                    .map(([alias, voice]) => `${alias}: ${voice}`)
+                    .join('\n');
+            }
+            document.getElementById('cfg-voice-aliases').value = aliasesText;
+
+            // Cargar Palabras Prohibidas
+            if (bannedWords && Array.isArray(bannedWords)) {
+                document.getElementById('cfg-banned-words').value = bannedWords.join('\n');
+            } else {
+                document.getElementById('cfg-banned-words').value = '';
+            }
+        }
+
+        // Guardar configuración desde el formulario
+        function saveConfig(e) {
+            e.preventDefault();
+
+            // Parsear alias de voces de texto a objeto JSON
+            const aliasesRaw = document.getElementById('cfg-voice-aliases').value;
+            const VOICE_ALIASES = {};
+            aliasesRaw.split('\n').forEach(line => {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                    const alias = parts[0].trim().toLowerCase();
+                    const voice = parts.slice(1).join(':').trim();
+                    if (alias && voice) {
+                        VOICE_ALIASES[alias] = voice;
+                    }
+                }
+            });
+
+            const config = {
+                KICK_CHATROOM_ID: document.getElementById('cfg-chatroom-id').value.trim(),
+                PUSHER_KEY: document.getElementById('cfg-pusher-key').value.trim(),
+                YOUTUBE_CHANNEL_ID: document.getElementById('cfg-youtube-channel-id').value.trim(),
+                SPEAKERBOT_URL: document.getElementById('cfg-speakerbot-url').value.trim(),
+                VOICE_NAME: document.getElementById('cfg-voice').value.trim(),
+                COMMAND: document.getElementById('cfg-command').value.trim(),
+                VOICE_ALIASES: VOICE_ALIASES,
+                MAX_TEXT_LENGTH: parseInt(document.getElementById('cfg-max-text-length').value, 10) || 0
+            };
+
+            const bannedWordsRaw = document.getElementById('cfg-banned-words').value;
+            const bannedWords = bannedWordsRaw.split('\n')
+                .map(word => word.trim())
+                .filter(word => word.length > 0);
+
+            ws.send(JSON.stringify({
+                type: 'save_config',
+                config: config,
+                bannedWords: bannedWords
+            }));
+            
+            log('💾 Configuración guardada.', 'success');
+        }
+
+        // Cambiar el estado del Bot (Iniciar / Detener)
+        function toggleBot(active) {
+            ws.send(JSON.stringify({
+                type: 'toggle_bot',
+                active: active
+            }));
+        }
+
+        // Actualizar estados visuales de la UI
+        function updateStatusUI(status) {
+            const kickDot = document.getElementById('kick-dot');
+            const kickDotPing = document.getElementById('kick-dot-ping');
+            const kickStatus = document.getElementById('kick-status');
+            const btnStart = document.getElementById('btn-start');
+            const btnStop = document.getElementById('btn-stop');
+            const spIndicator = document.getElementById('speakerbot-status-indicator');
+
+            // Estado de Kick/YouTube
+            if (status.kickConnected) {
+                kickStatus.innerText = 'CONECTADO';
+                kickStatus.className = 'text-kick font-bold';
+                kickDot.className = 'relative inline-flex rounded-full h-1.5 w-1.5 bg-kick';
+                kickDotPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-kick opacity-75';
+            } else if (status.active) {
+                kickStatus.innerText = 'CONEX...';
+                kickStatus.className = 'text-yellow-400 font-bold';
+                kickDot.className = 'relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500';
+                kickDotPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75';
+            } else {
+                kickStatus.innerText = 'OFFLINE';
+                kickStatus.className = 'text-red-400 font-bold';
+                kickDot.className = 'relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500';
+                kickDotPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75';
+            }
+
+            // Botones de acción
+            if (status.active) {
+                btnStart.disabled = true;
+                btnStart.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
+                btnStop.disabled = false;
+                btnStop.className = 'flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
+            } else {
+                btnStart.disabled = false;
+                btnStart.className = 'flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
+                btnStop.disabled = true;
+                btnStop.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
+            }
+
+            // Estado Speaker.bot
+            if (status.speakerbotActive) {
+                spIndicator.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full bg-kick inline-block mr-1 animate-pulse"></span>
+                    SP.BOT
+                `;
+                spIndicator.className = 'flex items-center text-kick font-semibold';
+            } else {
+                spIndicator.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block mr-1"></span>
+                    SP.BOT
+                `;
+                spIndicator.className = 'flex items-center text-red-400';
+            }
+        }
+
+        // Medir latencia interna (Ping-Pong con servidor local)
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+            }
+        }, 5000);
+
+        // Iniciar conexión al cargar la página
+        connectToWS();
+    </script>
+</body>
+</html>

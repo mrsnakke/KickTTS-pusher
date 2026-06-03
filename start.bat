@@ -1,0 +1,6 @@
+@echo off
+title Lanzador Kick-TTS App
+echo Iniciando Kick-TTS App...
+echo Liberando puertos y levantando el servidor en segundo plano...
+node kick-tts.js
+pause

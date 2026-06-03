@@ -1,0 +1,23 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Configuración Personal (¡No subir a GitHub!)
+config.json
+banned-words.json
+.env
+
+# Archivos del Sistema Operativo
+.DS_Store
+Thumbs.db
+
+# Configuraciones de Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
