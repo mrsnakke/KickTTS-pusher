@@ -109,14 +109,24 @@
                     </div>
 
                     <!-- Botones de Control de Servicio Compactos -->
-                    <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button type="button" id="btn-start" onclick="toggleBot(true)" class="flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-2 rounded transition duration-150 shadow-md">
+                     <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" id="btn-start-kick" onclick="toggleBot(true, 'kick')" class="flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-2 rounded transition duration-150 shadow-md">
                             <i class="fa-solid fa-play"></i>
-                            <span>Iniciar</span>
+                            <span>Iniciar Kick</span>
                         </button>
-                        <button type="button" id="btn-stop" onclick="toggleBot(false)" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
+                        <button type="button" id="btn-stop-kick" onclick="toggleBot(false, 'kick')" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
                             <i class="fa-solid fa-square"></i>
-                            <span>Detener</span>
+                            <span>Detener Kick</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" id="btn-start-youtube" onclick="toggleBot(true, 'youtube')" class="flex items-center justify-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
+                            <i class="fa-brands fa-youtube"></i>
+                            <span>Iniciar YouTube</span>
+                        </button>
+                        <button type="button" id="btn-stop-youtube" onclick="toggleBot(false, 'youtube')" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
+                            <i class="fa-solid fa-square"></i>
+                            <span>Detener YouTube</span>
                         </button>
                     </div>
                 </div>
@@ -468,10 +478,11 @@
         }
 
         // Cambiar el estado del Bot (Iniciar / Detener)
-        function toggleBot(active) {
+        function toggleBot(active, platform) {
             ws.send(JSON.stringify({
                 type: 'toggle_bot',
-                active: active
+                active: active,
+                platform: platform
             }));
         }
 
@@ -480,8 +491,10 @@
             const kickDot = document.getElementById('kick-dot');
             const kickDotPing = document.getElementById('kick-dot-ping');
             const kickStatus = document.getElementById('kick-status');
-            const btnStart = document.getElementById('btn-start');
-            const btnStop = document.getElementById('btn-stop');
+            const btnStartKick = document.getElementById('btn-start-kick');
+            const btnStopKick = document.getElementById('btn-stop-kick');
+            const btnStartYoutube = document.getElementById('btn-start-youtube');
+            const btnStopYoutube = document.getElementById('btn-stop-youtube');
             const spIndicator = document.getElementById('speakerbot-status-indicator');
 
             // Estado de Kick/YouTube
@@ -502,17 +515,30 @@
                 kickDotPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75';
             }
 
-            // Botones de acción
-            if (status.active) {
-                btnStart.disabled = true;
-                btnStart.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
-                btnStop.disabled = false;
-                btnStop.className = 'flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
+            // Botones de acción Kick
+            if (status.kickActive) {
+                btnStartKick.disabled = true;
+                btnStartKick.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
+                btnStopKick.disabled = false;
+                btnStopKick.className = 'flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
             } else {
-                btnStart.disabled = false;
-                btnStart.className = 'flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
-                btnStop.disabled = true;
-                btnStop.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
+                btnStartKick.disabled = false;
+                btnStartKick.className = 'flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
+                btnStopKick.disabled = true;
+                btnStopKick.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
+            }
+
+            // Botones de acción YouTube
+            if (status.youtubeActive) {
+                btnStartYoutube.disabled = true;
+                btnStartYoutube.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
+                btnStopYoutube.disabled = false;
+                btnStopYoutube.className = 'flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
+            } else {
+                btnStartYoutube.disabled = false;
+                btnStartYoutube.className = 'flex items-center justify-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
+                btnStopYoutube.disabled = true;
+                btnStopYoutube.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
             }
 
             // Estado Speaker.bot

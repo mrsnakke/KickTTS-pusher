@@ -147,7 +147,8 @@ function saveConfigToFile() {
 }
 
 // Variables de estado del bot
-let botActive = false;
+let kickActive = false;
+let youtubeActive = false;
 let kickWsConnected = false;
 let ytConnected = false;
 let speakerbotActive = false;
@@ -189,12 +190,14 @@ function uiLog(message, logType = 'info', user = null) {
 // Enviar el estado actualizado de las conexiones al frontend
 function sendStatusUpdate() {
     broadcastToUI({
-        type: 'status_update',
-        status: {
-            active: botActive,
-            kickConnected: kickWsConnected || ytConnected,
-            speakerbotActive
-        }
+            type: 'status_update',
+            status: {
+                kickActive: kickActive,
+                youtubeActive: youtubeActive,
+                kickConnected: kickWsConnected,
+                youtubeConnected: ytConnected,
+                speakerbotActive
+            }
     });
 }
 
@@ -299,7 +302,7 @@ loadConfig();
 
 // --- CONEXIÓN DE WEBSOCKET KICK ---
 function startKickConnection() {
-    if (!botActive) return;
+    if (!kickActive) return;
 
     if (!config.KICK_CHATROOM_ID) {
         uiLog('No se puede conectar a Kick: ID de Chatroom vacío.', 'error');
@@ -415,7 +418,7 @@ function startKickConnection() {
         sendStatusUpdate();
         clearInterval(kickPingInterval);
 
-        if (botActive) {
+        if (kickActive) {
             uiLog('Se perdió la conexión con Kick. Reconectando en 5 segundos...', 'error');
             setTimeout(startKickConnection, 5000);
         } else {
@@ -441,7 +444,7 @@ function stopKickConnection() {
 
 // --- CONEXIÓN DE YOUTUBE LIVE CHAT ---
 async function startYouTubeConnection() {
-    if (!botActive) return;
+    if (!youtubeActive) return;
 
     if (!config.YOUTUBE_CHANNEL_ID) {
         uiLog('YouTube: ID de Canal o Enlace no configurado. Saltando conexión de YouTube.', 'info');
@@ -607,7 +610,7 @@ wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'config', config, bannedWords }));
     ws.send(JSON.stringify({
         type: 'status_update',
-        status: { active: botActive, kickConnected: kickWsConnected || ytConnected, speakerbotActive }
+        status: { kickActive, youtubeActive, kickConnected: kickWsConnected, youtubeConnected: ytConnected, speakerbotActive }
     }));
 
     ws.on('message', (message) => {
@@ -630,28 +633,39 @@ wss.on('connection', (ws) => {
                 broadcastToUI({ type: 'config', config, bannedWords });
                 uiLog('Configuración actualizada por el usuario.', 'system');
 
-                if (botActive) {
-                    uiLog('Reiniciando conexión con Kick y YouTube para aplicar la nueva configuración...', 'system');
+                // Reiniciar Kick si estaba activo
+                if (kickActive) {
+                    uiLog("Reiniciando conexión con Kick para aplicar la nueva configuración...", "system");
                     stopKickConnection();
-                    stopYouTubeConnection();
-                    botActive = true;
                     startKickConnection();
+                }
+                // Reiniciar YouTube si estaba activo
+                if (youtubeActive) {
+                    uiLog("Reiniciando conexión con YouTube para aplicar la nueva configuración...", "system");
+                    stopYouTubeConnection();
                     startYouTubeConnection();
                 }
             }
             else if (data.type === 'toggle_bot') {
-                if (data.active) {
-                    if (!botActive) {
-                        botActive = true;
-                        sendStatusUpdate();
+                const platform = data.platform; // 'kick' o 'youtube'
+                const active = data.active;
+
+                if (platform === 'kick') {
+                    kickActive = active;
+                    if (active) {
                         startKickConnection();
-                        startYouTubeConnection();
+                    } else {
+                        stopKickConnection();
                     }
-                } else {
-                    botActive = false;
-                    stopKickConnection();
-                    stopYouTubeConnection();
+                } else if (platform === 'youtube') {
+                    youtubeActive = active;
+                    if (active) {
+                        startYouTubeConnection();
+                    } else {
+                        stopYouTubeConnection();
+                    }
                 }
+                sendStatusUpdate();
             }
             else if (data.type === 'ping') {
                 ws.send(JSON.stringify({ type: 'ping_pong', timestamp: data.timestamp }));
