@@ -187,7 +187,15 @@ function startKickConnection() {
                             }
 
                             uiLog(textToSpeak, 'chat_tts_kick', user);
-                            sendToSpeakerBot(textToSpeak, user, finalVoice);
+
+                            // Limpiar emotes para la voz pero mantenerlos para el log visual de la UI
+                            const cleanTextForSpeech = textToSpeak.replace(/\[emote:\d+:[^\]]+\]/g, '').trim();
+
+                            if (cleanTextForSpeech.length > 0) {
+                                sendToSpeakerBot(cleanTextForSpeech, user, finalVoice);
+                            } else {
+                                console.log('[KICK-TTS] Mensaje con solo emotes, se omite enviar a SpeakerBot.');
+                            }
                         } else {
                             uiLog('Mensaje vacío ignorado tras remover el alias de voz.', 'info', user);
                         }

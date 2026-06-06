@@ -379,6 +379,27 @@
             };
         }
 
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&',
+                    '<': '<',
+                    '>': '>',
+                    "'": '&#39;',
+                    '"': '"'
+                }[tag] || tag)
+            );
+        }
+
+        function parseEmotes(text) {
+            const escaped = escapeHTML(text);
+            // Reemplazar emotes de Kick: [emote:id:name]
+            return escaped.replace(/\[emote:(\d+):([^\]]+)\]/g, (match, id, name) => {
+                return `<img src="https://files.kick.com/emotes/${id}/fullsize" alt="${name}" title="${name}" class="inline-block h-6 w-auto align-middle mx-0.5" />`;
+            });
+        }
+
         // Registrar un mensaje en la consola web con soporte para iconos de plataforma
         function log(message, type = 'info', user = null, metadata = null) {
             const consoleBox = document.getElementById('console-logs');
@@ -409,7 +430,7 @@
                         <i class="fa-solid fa-volume-high mr-1"></i>
                         <strong>${user}:</strong>
                     </span>
-                    <span class="text-gray-100">${message}</span>
+                    <span class="text-gray-100">${parseEmotes(message)}</span>
                 `;
             } 
             // Canjes de Recompensa de Kick
@@ -421,7 +442,7 @@
                     ${timeSpan}
                     <span class="text-yellow-400 mr-1.5 shrink-0"><i class="fa-solid fa-gift animate-pulse"></i></span>
                     <span class="text-yellow-200 mr-1.5"><strong>${user}</strong> canjeó:</span>
-                    <span class="text-white bg-yellow-500/20 px-1.5 py-0.5 rounded border border-yellow-500/30 font-bold">${message}</span>
+                    <span class="text-white bg-yellow-500/20 px-1.5 py-0.5 rounded border border-yellow-500/30 font-bold">${parseEmotes(message)}</span>
                 `;
             }
             // Mensajes ordinarios de Kick
@@ -433,7 +454,7 @@
                     ${timeSpan}
                     <span class="text-kick/60 mr-1.5 shrink-0"><i class="fa-solid fa-comments"></i></span>
                     <span class="text-gray-400 mr-1.5"><strong>${user}:</strong></span>
-                    <span class="text-gray-400">${message}</span>
+                    <span class="text-gray-400">${parseEmotes(message)}</span>
                 `;
             } else {
                 logRow.className += 'border-gray-800 text-gray-400';
