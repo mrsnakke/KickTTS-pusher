@@ -63,6 +63,10 @@
                     <i class="fa-solid fa-sliders"></i>
                     <span>Principal</span>
                 </button>
+                <button onclick="switchTab('tab-user-aliases')" id="btn-tab-user-aliases" class="tab-btn flex-1 py-3 text-center text-gray-400 hover:text-white transition duration-150 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-user-tag"></i>
+                    <span>Voces Usuarios</span>
+                </button>
                 <button onclick="switchTab('tab-avanzado')" id="btn-tab-avanzado" class="tab-btn flex-1 py-3 text-center text-gray-400 hover:text-white transition duration-150 flex items-center justify-center space-x-1.5">
                     <i class="fa-solid fa-gears"></i>
                     <span>Avanzado</span>
@@ -188,6 +192,19 @@
                     </div>
                 </div>
 
+                <!-- PESTAÑA VOCES DE USUARIOS -->
+                <div id="tab-user-aliases" class="space-y-3 hidden flex-1 flex flex-col h-full overflow-hidden">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-kick">Voces de Usuarios Guardadas</span>
+                    <div class="text-gray-400 text-[11px] mb-2 leading-relaxed">
+                        Usuarios que han cambiado su voz con comandos (ej: <code class="text-white bg-darkBg px-1 rounded font-bold">!sabina</code>).
+                    </div>
+                    
+                    <!-- Contenedor con scroll para la lista -->
+                    <div id="user-aliases-list-container" class="flex-1 overflow-y-auto max-h-[290px] border border-gray-800 rounded-md bg-darkInput p-2 space-y-1.5">
+                        <div class="text-gray-500 text-center py-4 italic text-xs">No hay usuarios con voz personalizada</div>
+                    </div>
+                </div>
+
                 <!-- Footer Save Button -->
                 <div class="pt-2 border-t border-gray-800 flex justify-end">
                     <button type="submit" class="w-full flex items-center justify-center space-x-1.5 bg-darkInput hover:bg-gray-800 border border-gray-700 hover:border-gray-600 text-white font-semibold py-1.5 rounded transition duration-200 shadow">
@@ -269,14 +286,52 @@
         function switchTab(tabId) {
             document.getElementById('tab-principal').classList.add('hidden');
             document.getElementById('tab-avanzado').classList.add('hidden');
+            document.getElementById('tab-user-aliases').classList.add('hidden');
+            
             document.getElementById('btn-tab-principal').classList.remove('active');
             document.getElementById('btn-tab-principal').classList.add('text-gray-400');
+            document.getElementById('btn-tab-user-aliases').classList.remove('active');
+            document.getElementById('btn-tab-user-aliases').classList.add('text-gray-400');
             document.getElementById('btn-tab-avanzado').classList.remove('active');
             document.getElementById('btn-tab-avanzado').classList.add('text-gray-400');
 
             document.getElementById(tabId).classList.remove('hidden');
             document.getElementById('btn-' + tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.remove('text-gray-400');
+        }
+
+        let activeUserAliases = {};
+
+        function deleteUserAlias(username) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'delete_user_alias', username }));
+                log(`Eliminado alias para el usuario ${username}`, 'info');
+            }
+        }
+
+        function renderUserAliasesList() {
+            const container = document.getElementById('user-aliases-list-container');
+            const entries = Object.entries(activeUserAliases);
+            
+            if (entries.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 text-center py-4 italic text-xs">No hay usuarios con voz personalizada</div>';
+                return;
+            }
+            
+            // Ordenar por fecha de actualización (más reciente arriba)
+            entries.sort((a, b) => b[1].updatedAt.localeCompare(a[1].updatedAt));
+            
+            container.innerHTML = entries.map(([key, data]) => `
+                <div class="flex items-center justify-between bg-darkBg/60 px-2.5 py-1.5 rounded border border-gray-800/60 hover:border-gray-700/60 transition duration-150 text-gray-300">
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-bold text-white truncate text-[11px]">${data.username}</span>
+                        <span class="text-[10px] text-kick font-mono font-bold">${data.voice}</span>
+                    </div>
+                    <button type="button" onclick="deleteUserAlias('${data.username}')" class="text-red-400 hover:text-red-300 transition duration-150 p-1 ml-2 shrink-0" title="Restablecer a voz por defecto">
+                        <i class="fa-solid fa-user-minus text-[11px]"></i>
+                    </button>
+                </div>
+            `).join('');
         }
 
         // Conectar con el WebSocket interno de Node.js
@@ -297,6 +352,10 @@
                     
                     if (data.type === 'config') {
                         loadConfigToUI(data.config, data.bannedWords);
+                    }
+                    else if (data.type === 'user_aliases') {
+                        activeUserAliases = data.userAliases || {};
+                        renderUserAliasesList();
                     }
                     else if (data.type === 'status_update') {
                         updateStatusUI(data.status);
