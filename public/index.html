@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kick & YouTube TTS App</title>
+    <title>Kick TTS App</title>
     <!-- Tailwind CSS (Dark Mode Activada) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -84,7 +84,11 @@
                             <label class="block text-gray-400 mb-0.5 font-medium">Voz Principal</label>
                             <select id="cfg-voice" required 
                                     class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2 text-white focus:outline-none focus:border-kick transition duration-150">
+                                <option value="Andrés">Andrés</option>
+                                <option value="Ava">Ava</option>
+                                <option value="Brian">Brian</option>
                                 <option value="Grim">Grim</option>
+                                <option value="Jorge">Jorge</option>
                                 <option value="Sabina">Sabina</option>
                             </select>
                         </div>
@@ -92,20 +96,40 @@
 
                     <div>
                         <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
-                            <span>Alias de Voces (alias: voz)</span>
-                            <span class="text-[10px] text-kick">Ej. sabina: Sabina</span>
+                            <span>Alias de Voces (Cargados en config.json)</span>
+                            <span class="text-[10px] text-gray-500">No editable desde interfaz</span>
                         </label>
-                        <textarea id="cfg-voice-aliases" rows="5" placeholder="grim: Grim&#10;sabina: Sabina" 
-                                  class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white font-mono text-xs focus:outline-none focus:border-kick transition duration-150 resize-none"></textarea>
+                        <textarea id="cfg-voice-aliases" readonly placeholder="No hay alias configurados" 
+                                  class="w-full h-44 bg-darkBg/60 border border-gray-900 rounded-md py-1.5 px-2.5 text-gray-400 font-mono text-xs focus:outline-none cursor-not-allowed transition duration-150 resize-none"></textarea>
                     </div>
 
                     <div>
                         <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
                             <span>Filtro de Palabras Prohibidas</span>
-                            <span class="text-[10px] text-red-400">Una palabra por línea</span>
+                            <span class="text-[10px] text-kick">Gestión de palabras</span>
                         </label>
-                        <textarea id="cfg-banned-words" rows="4" placeholder="Ej:&#10;palabra1&#10;palabra2" 
-                                  class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white font-mono text-xs focus:outline-none focus:border-kick transition duration-150 resize-none"></textarea>
+                        <div class="flex space-x-1">
+                            <input type="text" id="add-banned-word-input" placeholder="Añadir palabra prohibida..."
+                                   oninput="toggleAddBannedWordBtn()"
+                                   onkeydown="if(event.key === 'Enter') { event.preventDefault(); addBannedWord(); }"
+                                   class="flex-1 bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150 text-xs">
+                            <button type="button" id="btn-add-banned-word" onclick="addBannedWord()" disabled
+                                    class="bg-gray-800 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-700 hover:border-gray-600 rounded-md px-3 font-semibold transition duration-150 flex items-center justify-center">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <!-- Desplegable de Palabras Cargadas -->
+                        <div class="mt-2">
+                            <button type="button" onclick="toggleBannedWordsDropdown()" class="w-full flex items-center justify-between bg-darkInput border border-gray-800 hover:border-gray-700 rounded-md py-1.5 px-2.5 text-gray-400 hover:text-white transition duration-150 text-xs">
+                                <span>Palabras Prohibidas (<span id="banned-words-count" class="font-bold text-kick">0</span>)</span>
+                                <i id="banned-words-arrow" class="fa-solid fa-chevron-down transition-transform duration-200 text-[10px]"></i>
+                            </button>
+                            <div id="banned-words-dropdown" class="hidden mt-1 max-h-36 overflow-y-auto border border-gray-800 rounded-md bg-darkInput p-1.5 space-y-1">
+                                <div id="banned-words-list" class="space-y-1 text-xs">
+                                    <!-- Elementos dinámicos -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Botones de Control de Servicio Compactos -->
@@ -117,16 +141,6 @@
                         <button type="button" id="btn-stop-kick" onclick="toggleBot(false, 'kick')" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
                             <i class="fa-solid fa-square"></i>
                             <span>Detener Kick</span>
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button type="button" id="btn-start-youtube" onclick="toggleBot(true, 'youtube')" class="flex items-center justify-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
-                            <i class="fa-brands fa-youtube"></i>
-                            <span>Iniciar YouTube</span>
-                        </button>
-                        <button type="button" id="btn-stop-youtube" onclick="toggleBot(false, 'youtube')" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
-                            <i class="fa-solid fa-square"></i>
-                            <span>Detener YouTube</span>
                         </button>
                     </div>
                 </div>
@@ -155,22 +169,9 @@
                         </div>
                     </div>
 
-                    <!-- Sección YouTube -->
-                    <div class="border-t border-gray-800 pt-3 space-y-2.5">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-red-500">Configuración de YouTube</span>
-                        <div>
-                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
-                                <span>ID de Canal o Video de YouTube</span>
-                                <span class="text-[10px] text-gray-500">UC... o ID de Video</span>
-                            </label>
-                            <input type="text" id="cfg-youtube-channel-id" placeholder="Ej: UC-g8fA6XkY9-TCS3uB_ZvXQ o ID de live" 
-                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
-                        </div>
-                    </div>
-
                     <!-- Sección Común -->
                     <div class="border-t border-gray-800 pt-3 space-y-2.5">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">Configuración Común</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">Configuración de Conexión</span>
                         <div>
                             <label class="block text-gray-400 mb-0.5 font-medium">URL de Speaker.bot</label>
                             <input type="text" id="cfg-speakerbot-url" required placeholder="ws://127.0.0.1:7580/" 
@@ -352,20 +353,18 @@
                     <span class="text-gray-100">${message}</span>
                 `;
             } 
-            // Mensajes TTS YouTube
-            else if (type === 'chat_tts_youtube') {
-                logRow.className += 'border-red-500 text-white bg-red-950/10 font-medium text-[13px]';
-                ttsCount++;
-                document.getElementById('tts-counter').innerText = `Voz: ${ttsCount}`;
+            // Canjes de Recompensa de Kick
+            else if (type === 'chat_reward_redemption_kick') {
+                logRow.className += 'border-yellow-500 text-yellow-300 bg-yellow-950/15 font-semibold text-[13px]';
+                messageCount++;
+                document.getElementById('msg-counter').innerText = `Mensajes: ${messageCount}`;
                 logRow.innerHTML = `
                     ${timeSpan}
-                    <span class="text-red-500 mr-1.5 flex items-center inline-flex shrink-0">
-                        <i class="fa-brands fa-youtube mr-1"></i>
-                        <strong>${user}:</strong>
-                    </span>
-                    <span class="text-gray-100">${message}</span>
+                    <span class="text-yellow-400 mr-1.5 shrink-0"><i class="fa-solid fa-gift animate-pulse"></i></span>
+                    <span class="text-yellow-200 mr-1.5"><strong>${user}</strong> canjeó:</span>
+                    <span class="text-white bg-yellow-500/20 px-1.5 py-0.5 rounded border border-yellow-500/30 font-bold">${message}</span>
                 `;
-            } 
+            }
             // Mensajes ordinarios de Kick
             else if (type === 'chat_message_kick') {
                 logRow.className += 'border-gray-700 text-gray-500';
@@ -374,18 +373,6 @@
                 logRow.innerHTML = `
                     ${timeSpan}
                     <span class="text-kick/60 mr-1.5 shrink-0"><i class="fa-solid fa-comments"></i></span>
-                    <span class="text-gray-400 mr-1.5"><strong>${user}:</strong></span>
-                    <span class="text-gray-400">${message}</span>
-                `;
-            }
-            // Mensajes ordinarios de YouTube
-            else if (type === 'chat_message_youtube') {
-                logRow.className += 'border-gray-700 text-gray-500';
-                messageCount++;
-                document.getElementById('msg-counter').innerText = `Mensajes: ${messageCount}`;
-                logRow.innerHTML = `
-                    ${timeSpan}
-                    <span class="text-red-500/60 mr-1.5 shrink-0"><i class="fa-brands fa-youtube"></i></span>
                     <span class="text-gray-400 mr-1.5"><strong>${user}:</strong></span>
                     <span class="text-gray-400">${message}</span>
                 `;
@@ -407,11 +394,115 @@
             log('Consola vaciada.', 'info');
         }
 
+        let activeBannedWords = [];
+
+        function toggleBannedWordsDropdown() {
+            const dropdown = document.getElementById('banned-words-dropdown');
+            const arrow = document.getElementById('banned-words-arrow');
+            const isHidden = dropdown.classList.contains('hidden');
+            if (isHidden) {
+                dropdown.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                dropdown.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleAddBannedWordBtn() {
+            const input = document.getElementById('add-banned-word-input');
+            const btn = document.getElementById('btn-add-banned-word');
+            if (input.value.trim().length > 0) {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-800', 'text-gray-500');
+                btn.classList.add('bg-kick', 'text-darkBg', 'hover:bg-kick/90');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('bg-gray-800', 'text-gray-500');
+                btn.classList.remove('bg-kick', 'text-darkBg', 'hover:bg-kick/90');
+            }
+        }
+
+        function addBannedWord() {
+            const input = document.getElementById('add-banned-word-input');
+            const word = input.value.trim();
+            if (word) {
+                if (!activeBannedWords.includes(word)) {
+                    activeBannedWords.push(word);
+                    renderBannedWordsList();
+                    saveConfigDirect();
+                }
+                input.value = '';
+                toggleAddBannedWordBtn();
+            }
+        }
+
+        function removeBannedWord(index) {
+            activeBannedWords.splice(index, 1);
+            renderBannedWordsList();
+            saveConfigDirect();
+        }
+
+        function renderBannedWordsList() {
+            const listContainer = document.getElementById('banned-words-list');
+            const countSpan = document.getElementById('banned-words-count');
+            countSpan.innerText = activeBannedWords.length;
+            
+            if (activeBannedWords.length === 0) {
+                listContainer.innerHTML = '<div class="text-gray-500 text-center py-2 italic">No hay palabras prohibidas</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = activeBannedWords.map((word, index) => `
+                <div class="flex items-center justify-between bg-darkBg/60 px-2.5 py-1 rounded border border-gray-800/60 hover:border-gray-700/60 transition duration-150 text-gray-300">
+                    <span class="font-mono truncate select-all">${word}</span>
+                    <button type="button" onclick="removeBannedWord(${index})" class="text-red-400 hover:text-red-300 transition duration-150 p-1 ml-2" title="Eliminar">
+                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function getUIConfig() {
+            // Parsear alias de voces de texto a objeto JSON
+            const aliasesRaw = document.getElementById('cfg-voice-aliases').value;
+            const VOICE_ALIASES = {};
+            aliasesRaw.split('\n').forEach(line => {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                    const alias = parts[0].trim().toLowerCase();
+                    const voice = parts.slice(1).join(':').trim();
+                    if (alias && voice) {
+                        VOICE_ALIASES[alias] = voice;
+                    }
+                }
+            });
+
+            return {
+                KICK_CHATROOM_ID: document.getElementById('cfg-chatroom-id').value.trim(),
+                PUSHER_KEY: document.getElementById('cfg-pusher-key').value.trim(),
+                SPEAKERBOT_URL: document.getElementById('cfg-speakerbot-url').value.trim(),
+                VOICE_NAME: document.getElementById('cfg-voice').value.trim(),
+                COMMAND: document.getElementById('cfg-command').value.trim(),
+                VOICE_ALIASES: VOICE_ALIASES,
+                MAX_TEXT_LENGTH: parseInt(document.getElementById('cfg-max-text-length').value, 10) || 0
+            };
+        }
+
+        function saveConfigDirect() {
+            const config = getUIConfig();
+            ws.send(JSON.stringify({
+                type: 'save_config',
+                config: config,
+                bannedWords: activeBannedWords
+            }));
+            log('💾 Filtro de palabras actualizado.', 'success');
+        }
+
         // Cargar datos a los inputs de la UI
         function loadConfigToUI(config, bannedWords = []) {
             document.getElementById('cfg-chatroom-id').value = config.KICK_CHATROOM_ID || '';
             document.getElementById('cfg-pusher-key').value = config.PUSHER_KEY || '32cbd69e4b950bf97679';
-            document.getElementById('cfg-youtube-channel-id').value = config.YOUTUBE_CHANNEL_ID || '';
             document.getElementById('cfg-speakerbot-url').value = config.SPEAKERBOT_URL || 'ws://127.0.0.1:7580/';
             document.getElementById('cfg-voice').value = config.VOICE_NAME || 'Grim';
             document.getElementById('cfg-command').value = config.COMMAND || '!sp';
@@ -427,51 +518,19 @@
             document.getElementById('cfg-voice-aliases').value = aliasesText;
 
             // Cargar Palabras Prohibidas
-            if (bannedWords && Array.isArray(bannedWords)) {
-                document.getElementById('cfg-banned-words').value = bannedWords.join('\n');
-            } else {
-                document.getElementById('cfg-banned-words').value = '';
-            }
+            activeBannedWords = bannedWords || [];
+            renderBannedWordsList();
         }
 
         // Guardar configuración desde el formulario
         function saveConfig(e) {
             e.preventDefault();
-
-            // Parsear alias de voces de texto a objeto JSON
-            const aliasesRaw = document.getElementById('cfg-voice-aliases').value;
-            const VOICE_ALIASES = {};
-            aliasesRaw.split('\n').forEach(line => {
-                const parts = line.split(':');
-                if (parts.length >= 2) {
-                    const alias = parts[0].trim().toLowerCase();
-                    const voice = parts.slice(1).join(':').trim();
-                    if (alias && voice) {
-                        VOICE_ALIASES[alias] = voice;
-                    }
-                }
-            });
-
-            const config = {
-                KICK_CHATROOM_ID: document.getElementById('cfg-chatroom-id').value.trim(),
-                PUSHER_KEY: document.getElementById('cfg-pusher-key').value.trim(),
-                YOUTUBE_CHANNEL_ID: document.getElementById('cfg-youtube-channel-id').value.trim(),
-                SPEAKERBOT_URL: document.getElementById('cfg-speakerbot-url').value.trim(),
-                VOICE_NAME: document.getElementById('cfg-voice').value.trim(),
-                COMMAND: document.getElementById('cfg-command').value.trim(),
-                VOICE_ALIASES: VOICE_ALIASES,
-                MAX_TEXT_LENGTH: parseInt(document.getElementById('cfg-max-text-length').value, 10) || 0
-            };
-
-            const bannedWordsRaw = document.getElementById('cfg-banned-words').value;
-            const bannedWords = bannedWordsRaw.split('\n')
-                .map(word => word.trim())
-                .filter(word => word.length > 0);
+            const config = getUIConfig();
 
             ws.send(JSON.stringify({
                 type: 'save_config',
                 config: config,
-                bannedWords: bannedWords
+                bannedWords: activeBannedWords
             }));
             
             log('💾 Configuración guardada.', 'success');
@@ -493,11 +552,9 @@
             const kickStatus = document.getElementById('kick-status');
             const btnStartKick = document.getElementById('btn-start-kick');
             const btnStopKick = document.getElementById('btn-stop-kick');
-            const btnStartYoutube = document.getElementById('btn-start-youtube');
-            const btnStopYoutube = document.getElementById('btn-stop-youtube');
             const spIndicator = document.getElementById('speakerbot-status-indicator');
 
-            // Estado de Kick/YouTube
+            // Estado de Kick
             if (status.kickConnected) {
                 kickStatus.innerText = 'CONECTADO';
                 kickStatus.className = 'text-kick font-bold';
@@ -526,19 +583,6 @@
                 btnStartKick.className = 'flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
                 btnStopKick.disabled = true;
                 btnStopKick.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
-            }
-
-            // Botones de acción YouTube
-            if (status.youtubeActive) {
-                btnStartYoutube.disabled = true;
-                btnStartYoutube.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
-                btnStopYoutube.disabled = false;
-                btnStopYoutube.className = 'flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
-            } else {
-                btnStartYoutube.disabled = false;
-                btnStartYoutube.className = 'flex items-center justify-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded transition duration-200 shadow-md w-full text-xs';
-                btnStopYoutube.disabled = true;
-                btnStopYoutube.className = 'flex items-center justify-center space-x-1.5 bg-gray-800 text-gray-500 font-bold py-1.5 rounded cursor-not-allowed shadow-inner w-full text-xs';
             }
 
             // Estado Speaker.bot

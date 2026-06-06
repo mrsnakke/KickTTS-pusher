@@ -20,7 +20,6 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const net = require('net');
-const { LiveChat } = require('youtube-chat');
 const { checkSpam } = require('./spam-filter');
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
@@ -36,7 +35,7 @@ function loadBannedWords() {
             bannedWords = JSON.parse(fileData);
             console.log('✅ Palabras prohibidas cargadas desde banned-words.json');
         } else {
-            bannedWords = ["puto", "puta", "maricon", "pendejo", "mierda"];
+            bannedWords = ["puto", "puta", "maricon", "pendejo"];
             saveBannedWordsToFile();
         }
     } catch (e) {
@@ -62,60 +61,20 @@ function containsBannedWords(message) {
     });
 }
 
-// Función para parsear ID de canal o video de un enlace de YouTube
-function parseYouTubeId(input) {
-    if (!input) return "";
-    input = input.trim();
-    
-    // Si contiene caracteres de URL de YouTube
-    if (input.includes('youtube.com') || input.includes('youtu.be')) {
-        try {
-            // 1. Canal con ID específico: /channel/UC...
-            const channelIdMatch = input.match(/\/channel\/(UC[a-zA-Z0-9_-]{22})/i);
-            if (channelIdMatch) {
-                return channelIdMatch[1];
-            }
-            
-            // 2. Video / Live con watch?v=...
-            if (input.includes('/watch')) {
-                const urlParts = input.split('?')[1];
-                if (urlParts) {
-                    const params = new URLSearchParams(urlParts);
-                    const v = params.get('v');
-                    if (v) return v;
-                }
-            }
-            
-            // 3. Video / Live con /live/...
-            const liveMatch = input.match(/\/live\/([a-zA-Z0-9_-]{11})/i);
-            if (liveMatch) {
-                return liveMatch[1];
-            }
-            
-            // 4. Video corto con youtu.be/...
-            const shortMatch = input.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
-            if (shortMatch) {
-                return shortMatch[1];
-            }
-        } catch (e) {
-            console.error('⚠️ Error parseando URL de YouTube:', e.message);
-        }
-    }
-    
-    // Si no es URL o no coincide con los patrones, devolver tal cual
-    return input;
-}
-
 // Cargar configuración inicial o crearla si no existe
 let config = {
     KICK_CHATROOM_ID: "4523166",
     PUSHER_KEY: "32cbd69e4b950bf97679",
-    YOUTUBE_CHANNEL_ID: "",
     SPEAKERBOT_URL: "ws://127.0.0.1:7580/",
     VOICE_NAME: "Grim",
     COMMAND: "!sp",
     VOICE_ALIASES: {
+        "andrés": "Andrés",
+        "andres": "Andrés",
+        "ava": "Ava",
+        "brian": "Brian",
         "grim": "Grim",
+        "jorge": "Jorge",
         "sabina": "Sabina"
     },
     MAX_TEXT_LENGTH: 200
@@ -148,15 +107,12 @@ function saveConfigToFile() {
 
 // Variables de estado del bot
 let kickActive = false;
-let youtubeActive = false;
 let kickWsConnected = false;
-let ytConnected = false;
 let speakerbotActive = false;
 let kickSocket = null;
 let kickPingInterval = null;
 let speakerbotCheckInterval = null;
 let speakerbotWs = null;
-let youtubeChat = null;
 
 // Servidor Express y WS local para la interfaz gráfica
 const app = express();
@@ -193,9 +149,7 @@ function sendStatusUpdate() {
             type: 'status_update',
             status: {
                 kickActive: kickActive,
-                youtubeActive: youtubeActive,
                 kickConnected: kickWsConnected,
-                youtubeConnected: ytConnected,
                 speakerbotActive
             }
     });
@@ -351,9 +305,35 @@ function startKickConnection() {
                 const chatData = JSON.parse(response.data);
                 const user = chatData.sender.username;
                 const message = chatData.content.trim();
+                const msgType = chatData.type || 'message';
 
+                // Determinar si es un canje de recompensa (reward redemption)
+                const isRewardRedemption = 
+                    msgType === 'reward_redemption' || 
+                    msgType === 'channel_points' ||
+                    (msgType === 'action' && (
+                        message.startsWith('canjeó ') || 
+                        message.includes('canjeó') || 
+                        message.startsWith('has redeemed ') || 
+                        message.includes('has redeemed')
+                    )) ||
+                    (chatData.metadata && (chatData.metadata.type === 'reward_redemption' || chatData.metadata.reward));
+
+                if (isRewardRedemption) {
+                    let rewardName = message;
+                    if (message.startsWith('canjeó ')) {
+                        rewardName = message.substring('canjeó '.length).trim();
+                    } else if (message.startsWith('has redeemed ')) {
+                        rewardName = message.substring('has redeemed '.length).trim();
+                    } else if (chatData.metadata && chatData.metadata.reward && chatData.metadata.reward.title) {
+                        rewardName = chatData.metadata.reward.title;
+                    }
+                    
+                    // Loguear el canje en el monitor de la app
+                    uiLog(rewardName, 'chat_reward_redemption_kick', user);
+                }
                 // Filtrar el comando
-                if (message.toLowerCase().startsWith(config.COMMAND.toLowerCase())) {
+                else if (message.toLowerCase().startsWith(config.COMMAND.toLowerCase())) {
                     const cleanMessage = message.substring(config.COMMAND.length).trim();
 
                     if (cleanMessage.length > 0) {
@@ -373,22 +353,15 @@ function startKickConnection() {
                         }
 
                         if (textToSpeak.length > 0) {
+                            // Comprobar palabras prohibidas
+                            if (containsBannedWords(textToSpeak)) {
+                                uiLog(`Mensaje bloqueado por contener palabras prohibidas.`, 'error', user);
+                                return;
+                            }
+
                             // Truncar si supera el máximo configurado
                             if (config.MAX_TEXT_LENGTH && textToSpeak.length > config.MAX_TEXT_LENGTH) {
                                 textToSpeak = textToSpeak.substring(0, config.MAX_TEXT_LENGTH) + '...';
-                            }
-
-                            // 1. Filtrar palabras prohibidas
-                            if (containsBannedWords(textToSpeak)) {
-                                uiLog(`Mensaje bloqueado: contiene palabras prohibidas`, 'error', user);
-                                return;
-                            }
-
-                            // 2. Filtro anti-spam
-                            const spamCheck = checkSpam(user, textToSpeak);
-                            if (spamCheck.isSpam) {
-                                uiLog(`Mensaje bloqueado por anti-spam: ${spamCheck.reason}`, 'error', user);
-                                return;
                             }
 
                             uiLog(textToSpeak, 'chat_tts_kick', user);
@@ -442,125 +415,6 @@ function stopKickConnection() {
     }
 }
 
-// --- CONEXIÓN DE YOUTUBE LIVE CHAT ---
-async function startYouTubeConnection() {
-    if (!youtubeActive) return;
-
-    if (!config.YOUTUBE_CHANNEL_ID) {
-        uiLog('YouTube: ID de Canal o Enlace no configurado. Saltando conexión de YouTube.', 'info');
-        return;
-    }
-
-    const parsedYoutubeId = parseYouTubeId(config.YOUTUBE_CHANNEL_ID);
-    if (!parsedYoutubeId) {
-        uiLog('YouTube: Enlace o ID de YouTube no es válido.', 'error');
-        return;
-    }
-
-    uiLog(`YouTube: Conectando al chat de YouTube para el canal/video: ${parsedYoutubeId}...`, 'system');
-
-    try {
-        const options = {};
-        if (parsedYoutubeId.startsWith('UC')) {
-            options.channelId = parsedYoutubeId;
-        } else {
-            options.liveId = parsedYoutubeId;
-        }
-
-        youtubeChat = new LiveChat(options);
-
-        youtubeChat.on('start', (liveId) => {
-            ytConnected = true;
-            uiLog(`YouTube: Conectado con éxito al chat del stream. (Video ID: ${liveId})`, 'system');
-            sendStatusUpdate();
-        });
-
-        youtubeChat.on('chat', (chatItem) => {
-            try {
-                const user = chatItem.author.name;
-                let message = "";
-                if (chatItem.message) {
-                    message = chatItem.message.map(m => m.text || "").join("").trim();
-                }
-
-                if (!message) return;
-
-                // Filtrar el comando
-                if (message.toLowerCase().startsWith(config.COMMAND.toLowerCase())) {
-                    const cleanMessage = message.substring(config.COMMAND.length).trim();
-
-                    if (cleanMessage.length > 0) {
-                        // Resolver Alias de Voces si aplica
-                        let finalVoice = config.VOICE_NAME;
-                        let textToSpeak = cleanMessage;
-
-                        // Extraer primera palabra (posible alias)
-                        const firstWord = cleanMessage.split(/\s+/)[0];
-                        const lowerFirstWord = firstWord.toLowerCase();
-
-                        if (config.VOICE_ALIASES && config.VOICE_ALIASES[lowerFirstWord]) {
-                            finalVoice = config.VOICE_ALIASES[lowerFirstWord];
-                            // Remover el alias de la cadena de texto para hablar
-                            textToSpeak = cleanMessage.substring(firstWord.length).trim();
-                            console.log(`[ALIAS-YT] Detectado alias "${lowerFirstWord}" -> usando voz "${finalVoice}"`);
-                        }
-
-                        if (textToSpeak.length > 0) {
-                            // 1. Filtrar palabras prohibidas
-                            if (containsBannedWords(textToSpeak)) {
-                                uiLog(`Mensaje bloqueado: contiene palabras prohibidas`, 'error', user);
-                                return;
-                            }
-
-                            // 2. Filtro anti-spam
-                            const spamCheck = checkSpam(user, textToSpeak);
-                            if (spamCheck.isSpam) {
-                                uiLog(`Mensaje bloqueado por anti-spam: ${spamCheck.reason}`, 'error', user);
-                                return;
-                            }
-
-                            uiLog(textToSpeak, 'chat_tts_youtube', user);
-                            sendToSpeakerBot(textToSpeak, user, finalVoice);
-                        } else {
-                            uiLog('Mensaje vacío ignorado tras remover el alias de voz.', 'info', user);
-                        }
-                    } else {
-                        uiLog('Mensaje vacío ignorado.', 'info', user);
-                    }
-                } else {
-                    // Loguear mensajes ordinarios sin reproducirlos
-                    uiLog(message, 'chat_message_youtube', user);
-                }
-            } catch (err) {
-                console.error('Error procesando chat de YouTube:', err);
-            }
-        });
-
-        youtubeChat.on('error', (err) => {
-            uiLog(`YouTube Error: ${err.message || err}`, 'error');
-        });
-
-        const started = await youtubeChat.start();
-        if (!started) {
-            uiLog('YouTube: No se pudo conectar al chat en vivo. Revisa si el canal está en transmisión directa.', 'error');
-        }
-    } catch (err) {
-        uiLog(`YouTube: Error al inicializar: ${err.message || err}`, 'error');
-    }
-}
-
-function stopYouTubeConnection() {
-    ytConnected = false;
-    sendStatusUpdate();
-
-    if (youtubeChat) {
-        try {
-            youtubeChat.stop();
-        } catch(e){}
-        youtubeChat = null;
-    }
-}
-
 async function sendToSpeakerBot(text, user, voice = config.VOICE_NAME) {
     // Si la URL es de WebSocket
     if (config.SPEAKERBOT_URL.startsWith('ws://') || config.SPEAKERBOT_URL.startsWith('wss://')) {
@@ -568,7 +422,7 @@ async function sendToSpeakerBot(text, user, voice = config.VOICE_NAME) {
             try {
                 const payload = {
                     request: "Speak",
-                    id: `kick-tts-${Date.now()}`,
+                    id: `kick-tts-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                     voice: voice,
                     message: text
                 };
@@ -610,7 +464,7 @@ wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'config', config, bannedWords }));
     ws.send(JSON.stringify({
         type: 'status_update',
-        status: { kickActive, youtubeActive, kickConnected: kickWsConnected, youtubeConnected: ytConnected, speakerbotActive }
+        status: { kickActive, kickConnected: kickWsConnected, speakerbotActive }
     }));
 
     ws.on('message', (message) => {
@@ -629,7 +483,6 @@ wss.on('connection', (ws) => {
                     saveBannedWordsToFile();
                 }
 
-                initSpeakerbot(); // Reconectar Speaker.bot si cambió la URL
                 broadcastToUI({ type: 'config', config, bannedWords });
                 uiLog('Configuración actualizada por el usuario.', 'system');
 
@@ -637,17 +490,16 @@ wss.on('connection', (ws) => {
                 if (kickActive) {
                     uiLog("Reiniciando conexión con Kick para aplicar la nueva configuración...", "system");
                     stopKickConnection();
+                    // Solo reconectar Speaker.bot si cambió la URL, Kick no debería afectarlo directamente.
+                    initSpeakerbot(); 
                     startKickConnection();
-                }
-                // Reiniciar YouTube si estaba activo
-                if (youtubeActive) {
-                    uiLog("Reiniciando conexión con YouTube para aplicar la nueva configuración...", "system");
-                    stopYouTubeConnection();
-                    startYouTubeConnection();
+                } else {
+                    // Si Kick no estaba activo, solo reconectar Speaker.bot si cambió la URL
+                    initSpeakerbot();
                 }
             }
             else if (data.type === 'toggle_bot') {
-                const platform = data.platform; // 'kick' o 'youtube'
+                const platform = data.platform; // 'kick'
                 const active = data.active;
 
                 if (platform === 'kick') {
@@ -656,13 +508,6 @@ wss.on('connection', (ws) => {
                         startKickConnection();
                     } else {
                         stopKickConnection();
-                    }
-                } else if (platform === 'youtube') {
-                    youtubeActive = active;
-                    if (active) {
-                        startYouTubeConnection();
-                    } else {
-                        stopYouTubeConnection();
                     }
                 }
                 sendStatusUpdate();

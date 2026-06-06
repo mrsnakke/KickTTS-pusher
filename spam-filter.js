@@ -1,6 +1,6 @@
 // Configuración interna del filtro anti-spam (fácil de editar y adaptar)
 const SPAM_CONFIG = {
-    enabled: true,
+    enabled: false,
     maxMessageLength: 200,        // Máximo de caracteres permitidos para hablar
     cooldownMs: 2000,             // Cooldown en milisegundos por usuario para comandos TTS (2 segundos)
     maxConsecutiveRepeat: 5,      // Máximo de caracteres idénticos repetidos seguidos (ej. "aaaaa")
