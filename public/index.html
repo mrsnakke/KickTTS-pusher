@@ -4,25 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kick TTS App</title>
-    <!-- Tailwind CSS (Dark Mode Activada) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        kick: '#53fc18',
-                        darkBg: '#080a0d',
-                        darkCard: '#111519',
-                        darkInput: '#181d24'
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📢</text></svg>">
+    <!-- Tailwind CSS Compilado -->
+    <link rel="stylesheet" href="output.css">
     <!-- FontAwesome 6 Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
     <style>
         html, body {
             overflow: hidden;
@@ -167,6 +153,24 @@
                         </div>
 
                         <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                                <span>ID de Usuario de 7TV (Opcional)</span>
+                                <span class="text-[10px] text-gray-500">Ej: 01GJ7PS7DR000CQ2WDRACYQ5EH</span>
+                            </label>
+                            <input type="text" id="cfg-seventv-user-id" placeholder="ID de perfil largo de 7TV" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
+                                <span>ID de Emote Set de 7TV (Opcional)</span>
+                                <span class="text-[10px] text-gray-500">Ej: 01GJ7Q9840000CQ2WDRACYQ5FE (prioridad sobre User ID)</span>
+                            </label>
+                            <input type="text" id="cfg-seventv-emote-set-id" placeholder="ID de conjunto de emotes de 7TV" 
+                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
+                        </div>
+
+                        <div>
                             <label class="block text-gray-400 mb-0.5 font-medium">Clave de Pusher (Kick)</label>
                             <input type="text" id="cfg-pusher-key" required placeholder="32cbd69e4b950bf97679" 
                                    class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white font-mono text-[10px] focus:outline-none focus:border-kick transition duration-150">
@@ -295,17 +299,19 @@
             document.getElementById('btn-tab-avanzado').classList.remove('active');
             document.getElementById('btn-tab-avanzado').classList.add('text-gray-400');
 
-            document.getElementById(tabId).classList.remove('hidden');
-            document.getElementById('btn-' + tabId).classList.add('active');
-            document.getElementById('btn-' + tabId).classList.remove('text-gray-400');
-        }
+            // Cargar emotes de 7TV si Kick está activo y cambió el chatroom ID o el ID de 7TV o ID de Emote Set de 7TV, o no se han cargado aún
+            const currentChatroomId = document.getElementById("cfg-chatroom-id").value.trim();
+            const currentSevenTvUserId = document.getElementById("cfg-seventv-user-id").value.trim();
+            const currentSevenTvEmoteSetId = document.getElementById("cfg-seventv-emote-set-id").value.trim();
+            const activeEmoteKey = currentSevenTvEmoteSetId || currentSevenTvUserId || currentChatroomId; // Nueva prioridad
 
-        let activeUserAliases = {};
-
-        function deleteUserAlias(username) {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'delete_user_alias', username }));
-                log(`Eliminado alias para el usuario ${username}`, 'info');
+            if (isKickActiveGlobal) {
+                if (currentSevenTvEmoteSetId && currentSevenTvEmoteSetId !== lastLoadedSevenTvChatroomId) {
+                    load7TVEmotes(currentSevenTvEmoteSetId);
+                }
+            } else {
+                // Si está inactivo, resetear para poder reintentar al activar de nuevo
+                lastLoadedSevenTvChatroomId = "";
             }
         }
 
@@ -344,6 +350,9 @@
             ws.onopen = () => {
                 log('🔌 Conectado al backend local.', 'system');
                 ws.send(JSON.stringify({ type: 'get_config' }));
+                
+                // Forzar un reinicio del ID de emotes cargados para que se autodetecte y cargue inmediatamente al iniciar
+                lastLoadedSevenTvChatroomId = "";
             };
 
             ws.onmessage = (event) => {
@@ -392,9 +401,95 @@
             );
         }
 
+        let sevenTvEmotes = [];
+        let sevenTvEmoteMap = {};
+        let lastLoadedSevenTvChatroomId = '';
+        let isKickActiveGlobal = false;
+
+        async function load7TVEmotes(sevenTvEmoteSetId) {
+            sevenTvEmotes = [];
+            sevenTvEmoteMap = {};
+            lastLoadedSevenTvChatroomId = '';
+            
+            if (!sevenTvEmoteSetId) {
+                console.warn("[7TV] No se proporcionó el Emote Set ID para cargar emotes.");
+                return;
+            }
+        
+            // Iniciamos un grupo en la consola de desarrollador (F12) para tener un seguimiento limpio
+            console.groupCollapsed("%c[7TV] Iniciando proceso de carga de emotes", "color: #53fc18; font-weight: bold;");
+
+            const url = `https://7tv.io/v3/emote-sets/${sevenTvEmoteSetId}`;
+            const metodoIntento = 'Emote Set ID';
+            
+            lastLoadedSevenTvChatroomId = sevenTvEmoteSetId;
+            
+            // Log en consola de desarrollador del intento actual
+            console.info(`%c➔ Intentando conectar a: ${url} (${metodoIntento})`, "color: #3b82f6;");
+            log(`[7TV] Buscando vía ${metodoIntento}...`, 'info');
+        
+            try {
+                const response = await fetch(url);
+                
+                // Si la respuesta no es satisfactoria (por ejemplo, 404 No Encontrado o 500)
+                if (!response.ok) {
+                    console.error(`%c❌ Falló conexión con ${metodoIntento}. Código HTTP: ${response.status} (${response.statusText})`, "color: #ef4444;");
+                    throw new Error(`Endpoint sin respuesta exitosa (HTTP ${response.status})`);
+                }
+
+                // Si la respuesta fue exitosa (HTTP 200)
+                console.log(`%c✔ Conexión exitosa con ${metodoIntento}! (HTTP ${response.status})`, "color: #10b981;");
+                const data = await response.json();
+
+                let emotesArray = [];
+                if (data && Array.isArray(data.emotes)) {
+                    emotesArray = data.emotes;
+                } else if (data && data.emote_set && Array.isArray(data.emote_set.emotes)) {
+                    emotesArray = data.emote_set.emotes;
+                }
+        
+                if (emotesArray.length > 0) {
+                    sevenTvEmotes = emotesArray;
+                    sevenTvEmoteMap = {};
+                    sevenTvEmotes.forEach(emote => {
+                        sevenTvEmoteMap[emote.name] = emote.id;
+                    });
+                    
+                    console.log(`%c[7TV] Se cargaron correctamente ${sevenTvEmotes.length} emotes mapeados en memoria.`, "color: #53fc18; font-weight: bold;");
+                    log(`[7TV] Éxito usando ${metodoIntento}. ${sevenTvEmotes.length} emotes cargados.`, 'success');
+                } else {
+                    console.warn("%c[7TV] Conexión establecida pero no se encontraron emotes en la respuesta de la API.", "color: #f59e0b;");
+                    log(`[7TV] Conectado a ${metodoIntento} pero la lista de emotes está vacía.`, 'info');
+                }
+            } catch (err) {
+                console.error(`%c❌ Error crítico en la carga de emotes de 7TV: ${err.message}`, "color: #ef4444; font-weight: bold;");
+                log(`[7TV] Error: No se pudo conectar a 7TV usando Emote Set ID.`, 'error');
+            } finally {
+                // Cerramos de forma limpia el grupo en la consola del navegador
+                console.groupEnd();
+            }
+        }
+
         function parseEmotes(text) {
-            const escaped = escapeHTML(text);
-            // Reemplazar emotes de Kick: [emote:id:name]
+            let escaped = escapeHTML(text);
+            
+            // 1. Reemplazar emotes de 7TV
+            if (sevenTvEmotes && sevenTvEmotes.length > 0) {
+                // Crear un array de palabras y posibles emotes para el reemplazo
+                const wordsAndEmotes = escaped.split(/(\s+)/); // Dividir, manteniendo los espacios como elementos
+
+                escaped = wordsAndEmotes.map(part => {
+                    // Solo intentar reemplazar si es una palabra que podría ser un emote
+                    if (sevenTvEmoteMap[part] && !/\s/.test(part)) { // Asegurarse de que no es solo espacio
+                        const emoteId = sevenTvEmoteMap[part];
+                        // Usar 2x.webp para mejor calidad en general, el CSS se encarga del tamaño
+                        return `<img src="https://cdn.7tv.app/emote/${emoteId}/2x.webp" alt="${part}" title="${part}" class="inline-block h-6 w-auto align-middle mx-0.5" />`;
+                    }
+                    return part;
+                }).join(''); // Unir sin añadir espacios extra
+            }
+
+            // 2. Reemplazar emotes de Kick: [emote:id:name]
             return escaped.replace(/\[emote:(\d+):([^\]]+)\]/g, (match, id, name) => {
                 return `<img src="https://files.kick.com/emotes/${id}/fullsize" alt="${name}" title="${name}" class="inline-block h-6 w-auto align-middle mx-0.5" />`;
             });
@@ -559,13 +654,15 @@
             });
 
             return {
-                KICK_CHATROOM_ID: document.getElementById('cfg-chatroom-id').value.trim(),
-                PUSHER_KEY: document.getElementById('cfg-pusher-key').value.trim(),
-                SPEAKERBOT_URL: document.getElementById('cfg-speakerbot-url').value.trim(),
-                VOICE_NAME: document.getElementById('cfg-voice').value.trim(),
-                COMMAND: document.getElementById('cfg-command').value.trim(),
+                KICK_CHATROOM_ID: document.getElementById("cfg-chatroom-id").value.trim(),
+                SEVENTV_USER_ID: document.getElementById("cfg-seventv-user-id").value.trim(),
+                SEVENTV_EMOTE_SET_ID: document.getElementById("cfg-seventv-emote-set-id").value.trim(), // Nuevo campo
+                PUSHER_KEY: document.getElementById("cfg-pusher-key").value.trim(),
+                SPEAKERBOT_URL: document.getElementById("cfg-speakerbot-url").value.trim(),
+                VOICE_NAME: document.getElementById("cfg-voice").value.trim(),
+                COMMAND: document.getElementById("cfg-command").value.trim(),
                 VOICE_ALIASES: VOICE_ALIASES,
-                MAX_TEXT_LENGTH: parseInt(document.getElementById('cfg-max-text-length').value, 10) || 0
+                MAX_TEXT_LENGTH: parseInt(document.getElementById("cfg-max-text-length").value, 10) || 0
             };
         }
 
@@ -581,7 +678,13 @@
 
         // Cargar datos a los inputs de la UI
         function loadConfigToUI(config, bannedWords = []) {
-            document.getElementById('cfg-chatroom-id').value = config.KICK_CHATROOM_ID || '';
+            const oldChatroomId = document.getElementById('cfg-chatroom-id').value;
+            const oldSevenTvUserId = document.getElementById('cfg-seventv-user-id').value;
+            const newChatroomId = config.KICK_CHATROOM_ID || '';
+            const newSevenTvUserId = config.SEVENTV_USER_ID || '';
+
+            document.getElementById('cfg-chatroom-id').value = newChatroomId;
+            document.getElementById('cfg-seventv-user-id').value = newSevenTvUserId;
             document.getElementById('cfg-pusher-key').value = config.PUSHER_KEY || '32cbd69e4b950bf97679';
             document.getElementById('cfg-speakerbot-url').value = config.SPEAKERBOT_URL || 'ws://127.0.0.1:7580/';
             document.getElementById('cfg-voice').value = config.VOICE_NAME || 'Grim';
@@ -600,6 +703,16 @@
             // Cargar Palabras Prohibidas
             activeBannedWords = bannedWords || [];
             renderBannedWordsList();
+
+            // Cargar emotes de 7TV si cambió el chatroom ID o ID de 7TV o ID de Emote Set de 7TV o no se han cargado aún (solo si Kick está activo)
+            const newSevenTvEmoteSetId = config.SEVENTV_EMOTE_SET_ID || '';
+            const newEmoteKey = newSevenTvEmoteSetId || newSevenTvUserId || newChatroomId; // New logic for new key
+
+            // Recargar emotes solo si está activo y el ID de emotes ha cambiado o no se han cargado aún.
+            // La carga inicial al activar el bot se gestiona en updateStatusUI.
+            if (isKickActiveGlobal && newSevenTvEmoteSetId && newSevenTvEmoteSetId !== lastLoadedSevenTvChatroomId) {
+                load7TVEmotes(newSevenTvEmoteSetId);
+            }
         }
 
         // Guardar configuración desde el formulario
@@ -627,12 +740,36 @@
 
         // Actualizar estados visuales de la UI
         function updateStatusUI(status) {
+            // Guardar el estado anterior antes de actualizar el global
+            const wasKickActive = isKickActiveGlobal;
+            isKickActiveGlobal = !!status.kickActive;
+
             const kickDot = document.getElementById('kick-dot');
             const kickDotPing = document.getElementById('kick-dot-ping');
             const kickStatus = document.getElementById('kick-status');
             const btnStartKick = document.getElementById('btn-start-kick');
             const btnStopKick = document.getElementById('btn-stop-kick');
             const spIndicator = document.getElementById('speakerbot-status-indicator');
+
+            const currentSevenTvEmoteSetId = document.getElementById('cfg-seventv-emote-set-id').value.trim();
+
+            if (isKickActiveGlobal) {
+                // Si el bot de Kick está activo, y los emotes no están cargados O el ID es diferente al último cargado
+                if (currentSevenTvEmoteSetId && (currentSevenTvEmoteSetId !== lastLoadedSevenTvChatroomId || sevenTvEmotes.length === 0)) {
+                    // Si acaba de activarse el bot, esperamos un poco. Si ya estaba activo, cargamos inmediatamente (cambio de ID en caliente)
+                    const delay = wasKickActive ? 0 : 1500;
+                    setTimeout(() => {
+                        if (isKickActiveGlobal && currentSevenTvEmoteSetId) {
+                            load7TVEmotes(currentSevenTvEmoteSetId);
+                        }
+                    }, delay);
+                }
+            } else {
+                // Si está inactivo, resetear para poder reintentar al activar de nuevo
+                lastLoadedSevenTvChatroomId = "";
+                sevenTvEmotes = [];
+                sevenTvEmoteMap = {};
+            }
 
             // Estado de Kick
             if (status.kickConnected) {

@@ -15,5 +15,8 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
   }
 }

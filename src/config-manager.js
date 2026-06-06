@@ -10,6 +10,8 @@ let bannedWords = [];
 // Default configuration
 let config = {
     KICK_CHATROOM_ID: "4523166",
+    SEVENTV_USER_ID: "01GJ7PS7DR000CQ2WDRACYQ5EH",
+    SEVENTV_EMOTE_SET_ID: "01GJ7Q9840000CQ2WDRACYQ5FE", // Nuevo campo para Emote Set ID de 7TV
     PUSHER_KEY: "32cbd69e4b950bf97679",
     SPEAKERBOT_URL: "ws://127.0.0.1:7580/",
     VOICE_NAME: "Grim",
