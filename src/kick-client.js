@@ -1,7 +1,6 @@
 const WebSocket = require('ws');
 const eventBus = require('./event-bus');
 const configManager = require('./config-manager');
-const { checkSpam } = require('./spam-filter');
 const { uiLog } = require('./logger');
 const { sendToSpeakerBot } = require('./speakerbot');
 
@@ -39,6 +38,15 @@ function setKickActive(active) {
 
 function emitStatusUpdate() {
     eventBus.emit('kick_status', { kickActive, kickConnected: kickWsConnected });
+}
+
+function triggerBonk(isBarrage, user) {
+    const url = configManager.getConfig().KICKBONKS_URL || 'http://localhost:3030';
+    const endpoint = isBarrage ? '/api/throw/barrage' : '/api/throw/single';
+    const label = isBarrage ? 'ráfaga' : 'simple';
+    fetch(`${url}${endpoint}`, { method: 'POST' })
+        .then(() => uiLog(`Lanzamiento ${label} ejecutado por @${user}`, 'success', user))
+        .catch(err => uiLog(`Error al lanzar ${label}: ${err.message} (¿kickbonks corriendo?)`, 'error'));
 }
 
 function startKickConnection() {
@@ -92,32 +100,12 @@ function startKickConnection() {
                 const chatData = JSON.parse(response.data);
                 const user = chatData.sender.username;
                 const message = chatData.content.trim();
-                const msgType = chatData.type || 'message';
 
-                // Determinar si es un canje de recompensa (reward redemption)
-                const isRewardRedemption = 
-                    msgType === 'reward_redemption' || 
-                    msgType === 'channel_points' ||
-                    (msgType === 'action' && (
-                        message.startsWith('canjeó ') || 
-                        message.includes('canjeó') || 
-                        message.startsWith('has redeemed ') || 
-                        message.includes('has redeemed')
-                    )) ||
-                    (chatData.metadata && (chatData.metadata.type === 'reward_redemption' || chatData.metadata.reward));
-
-                if (isRewardRedemption) {
-                    let rewardName = message;
-                    if (message.startsWith('canjeó ')) {
-                        rewardName = message.substring('canjeó '.length).trim();
-                    } else if (message.startsWith('has redeemed ')) {
-                        rewardName = message.substring('has redeemed '.length).trim();
-                    } else if (chatData.metadata && chatData.metadata.reward && chatData.metadata.reward.title) {
-                        rewardName = chatData.metadata.reward.title;
-                    }
-                    
-                    // Loguear el canje en el monitor de la app
-                    uiLog(rewardName, 'chat_reward_redemption_kick', user);
+                if (message.toLowerCase() === '!bonk') {
+                    triggerBonk(false, user);
+                }
+                else if (message.toLowerCase() === '!bonks') {
+                    triggerBonk(true, user);
                 }
                 // Detectar comando de cambio de alias personal (ej: !sabina o !grim)
                 else if (message.startsWith('!') && !message.toLowerCase().startsWith(configManager.getConfig().COMMAND.toLowerCase())) {
@@ -125,8 +113,7 @@ function startKickConnection() {
                     const aliases = configManager.getConfig().VOICE_ALIASES;
                     if (aliases && aliases[potentialVoiceKey]) {
                         const assignedVoice = aliases[potentialVoiceKey];
-                        const userAliasManager = require('./user-alias-manager');
-                        userAliasManager.setUserAlias(user, assignedVoice);
+                        configManager.setUserAlias(user, assignedVoice);
                         uiLog(`Asignada voz "${assignedVoice}" al usuario ${user} mediante comando "${message}".`, 'system', user);
                     } else {
                         // Es un comando que empieza con ! pero no es un alias válido, lo logueamos como mensaje ordinario
@@ -138,13 +125,6 @@ function startKickConnection() {
                     const cleanMessage = message.substring(configManager.getConfig().COMMAND.length).trim();
 
                     if (cleanMessage.length > 0) {
-                        // Comprobar SPAM si el filtro de spam está activado
-                        const spamResult = checkSpam(user, cleanMessage);
-                        if (spamResult.isSpam) {
-                            uiLog(`Mensaje bloqueado por SPAM: ${spamResult.reason}`, 'error', user);
-                            return;
-                        }
-
                         // Resolver Alias de Voces si aplica
                         let finalVoice = configManager.getConfig().VOICE_NAME;
                         let textToSpeak = cleanMessage;
@@ -165,8 +145,7 @@ function startKickConnection() {
 
                         // Si no se especificó un alias temporal en el mensaje, buscar si el usuario tiene un alias personal guardado
                         if (!usedTemporalAlias) {
-                            const userAliasManager = require('./user-alias-manager');
-                            const personalAlias = userAliasManager.getUserAlias(user);
+                            const personalAlias = configManager.getUserAlias(user);
                             if (personalAlias) {
                                 finalVoice = personalAlias.voice;
                                 console.log(`[ALIAS-KICK] Detectado alias personal para "${user}" -> usando voz "${finalVoice}"`);

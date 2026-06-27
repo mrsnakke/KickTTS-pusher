@@ -8,11 +8,16 @@ yarn-error.log*
 # Configuración Personal (¡No subir a GitHub!)
 config.json
 banned-words.json
+user-aliases.json
 .env
+
+# Archivos generados
+public/output.css
 
 # Archivos del Sistema Operativo
 .DS_Store
 Thumbs.db
+*.lnk
 
 # Configuraciones de Editor / IDE
 .vscode/

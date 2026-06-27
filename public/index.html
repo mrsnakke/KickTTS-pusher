@@ -7,8 +7,6 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📢</text></svg>">
     <!-- Tailwind CSS Compilado -->
     <link rel="stylesheet" href="output.css">
-    <!-- FontAwesome 6 Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
     <style>
         html, body {
             overflow: hidden;
@@ -46,15 +44,15 @@
             <!-- Tabs Header -->
             <div class="flex border-b border-gray-800 bg-gray-950/40 text-xs font-semibold">
                 <button onclick="switchTab('tab-principal')" id="btn-tab-principal" class="tab-btn active flex-1 py-3 text-center transition duration-150 flex items-center justify-center space-x-1.5">
-                    <i class="fa-solid fa-sliders"></i>
+                    <span>⚙</span>
                     <span>Principal</span>
                 </button>
                 <button onclick="switchTab('tab-user-aliases')" id="btn-tab-user-aliases" class="tab-btn flex-1 py-3 text-center text-gray-400 hover:text-white transition duration-150 flex items-center justify-center space-x-1.5">
-                    <i class="fa-solid fa-user-tag"></i>
+                    <span>👤</span>
                     <span>Voces Usuarios</span>
                 </button>
                 <button onclick="switchTab('tab-avanzado')" id="btn-tab-avanzado" class="tab-btn flex-1 py-3 text-center text-gray-400 hover:text-white transition duration-150 flex items-center justify-center space-x-1.5">
-                    <i class="fa-solid fa-gears"></i>
+                    <span>⚙</span>
                     <span>Avanzado</span>
                 </button>
             </div>
@@ -105,14 +103,14 @@
                                    class="flex-1 bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150 text-xs">
                             <button type="button" id="btn-add-banned-word" onclick="addBannedWord()" disabled
                                     class="bg-gray-800 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-700 hover:border-gray-600 rounded-md px-3 font-semibold transition duration-150 flex items-center justify-center">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
+                            <span>+</span>
+                        </button>
                         </div>
                         <!-- Desplegable de Palabras Cargadas -->
                         <div class="mt-2">
                             <button type="button" onclick="toggleBannedWordsDropdown()" class="w-full flex items-center justify-between bg-darkInput border border-gray-800 hover:border-gray-700 rounded-md py-1.5 px-2.5 text-gray-400 hover:text-white transition duration-150 text-xs">
                                 <span>Palabras Prohibidas (<span id="banned-words-count" class="font-bold text-kick">0</span>)</span>
-                                <i id="banned-words-arrow" class="fa-solid fa-chevron-down transition-transform duration-200 text-[10px]"></i>
+                                <span id="banned-words-arrow" class="transition-transform duration-200 text-[10px]">▼</span>
                             </button>
                             <div id="banned-words-dropdown" class="hidden mt-1 max-h-36 overflow-y-auto border border-gray-800 rounded-md bg-darkInput p-1.5 space-y-1">
                                 <div id="banned-words-list" class="space-y-1 text-xs">
@@ -125,11 +123,11 @@
                     <!-- Botones de Control de Servicio Compactos -->
                      <div class="grid grid-cols-2 gap-2 pt-1">
                         <button type="button" id="btn-start-kick" onclick="toggleBot(true, 'kick')" class="flex items-center justify-center space-x-1.5 bg-kick hover:bg-kick/90 text-darkBg font-bold py-2 rounded transition duration-150 shadow-md">
-                            <i class="fa-solid fa-play"></i>
+                            <span>▶</span>
                             <span>Iniciar Kick</span>
                         </button>
                         <button type="button" id="btn-stop-kick" onclick="toggleBot(false, 'kick')" class="flex items-center justify-center space-x-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition duration-150 shadow-md">
-                            <i class="fa-solid fa-square"></i>
+                            <span>■</span>
                             <span>Detener Kick</span>
                         </button>
                     </div>
@@ -145,28 +143,10 @@
                                 <span>ID de Chatroom de Kick</span>
                                 <a href="https://kick.com/api/v2/channels/mrsnakevt" target="_blank" class="text-[10px] text-kick hover:underline flex items-center space-x-0.5">
                                     <span>Abrir Enlace</span>
-                                    <i class="fa-solid fa-external-link w-2.5 h-2.5"></i>
+                                    <span>↗</span>
                                 </a>
                             </label>
                             <input type="text" id="cfg-chatroom-id" required placeholder="Ej: 4523166" 
-                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
-                                <span>ID de Usuario de 7TV (Opcional)</span>
-                                <span class="text-[10px] text-gray-500">Ej: 01GJ7PS7DR000CQ2WDRACYQ5EH</span>
-                            </label>
-                            <input type="text" id="cfg-seventv-user-id" placeholder="ID de perfil largo de 7TV" 
-                                   class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-400 mb-0.5 font-medium flex items-center justify-between">
-                                <span>ID de Emote Set de 7TV (Opcional)</span>
-                                <span class="text-[10px] text-gray-500">Ej: 01GJ7Q9840000CQ2WDRACYQ5FE (prioridad sobre User ID)</span>
-                            </label>
-                            <input type="text" id="cfg-seventv-emote-set-id" placeholder="ID de conjunto de emotes de 7TV" 
                                    class="w-full bg-darkInput border border-gray-800 rounded-md py-1.5 px-2.5 text-white focus:outline-none focus:border-kick transition duration-150">
                         </div>
 
@@ -212,7 +192,7 @@
                 <!-- Footer Save Button -->
                 <div class="pt-2 border-t border-gray-800 flex justify-end">
                     <button type="submit" class="w-full flex items-center justify-center space-x-1.5 bg-darkInput hover:bg-gray-800 border border-gray-700 hover:border-gray-600 text-white font-semibold py-1.5 rounded transition duration-200 shadow">
-                        <i class="fa-solid fa-save"></i>
+                        <span>💾</span>
                         <span>Guardar Configuración</span>
                     </button>
                 </div>
@@ -229,7 +209,7 @@
                     <span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span>
                     <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
                     <span class="text-gray-400 font-bold ml-1.5 flex items-center">
-                        <i class="fa-solid fa-terminal mr-1.5 text-gray-500"></i>
+                        <span class="mr-1.5 text-gray-500">></span>
                         MONITOR
                     </span>
                 </div>
@@ -256,9 +236,7 @@
                         SP.BOT
                     </span>
 
-                    <button onclick="clearConsole()" class="text-gray-500 hover:text-white transition duration-150 pl-1" title="Limpiar Consola">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
+                    <button onclick="clearConsole()" class="text-gray-500 hover:text-white transition duration-150 pl-1" title="Limpiar Consola">🗑</button>
                 </div>
             </div>
 
@@ -288,31 +266,22 @@
 
         // Cambiar pestañas
         function switchTab(tabId) {
+            // Ocultar todas las pestañas y desactivar todos los botones
             document.getElementById('tab-principal').classList.add('hidden');
             document.getElementById('tab-avanzado').classList.add('hidden');
             document.getElementById('tab-user-aliases').classList.add('hidden');
             
             document.getElementById('btn-tab-principal').classList.remove('active');
-            document.getElementById('btn-tab-principal').classList.add('text-gray-400');
+            document.getElementById('btn-tab-principal').classList.add('text-gray-400', 'hover:text-white');
             document.getElementById('btn-tab-user-aliases').classList.remove('active');
-            document.getElementById('btn-tab-user-aliases').classList.add('text-gray-400');
+            document.getElementById('btn-tab-user-aliases').classList.add('text-gray-400', 'hover:text-white');
             document.getElementById('btn-tab-avanzado').classList.remove('active');
-            document.getElementById('btn-tab-avanzado').classList.add('text-gray-400');
+            document.getElementById('btn-tab-avanzado').classList.add('text-gray-400', 'hover:text-white');
 
-            // Cargar emotes de 7TV si Kick está activo y cambió el chatroom ID o el ID de 7TV o ID de Emote Set de 7TV, o no se han cargado aún
-            const currentChatroomId = document.getElementById("cfg-chatroom-id").value.trim();
-            const currentSevenTvUserId = document.getElementById("cfg-seventv-user-id").value.trim();
-            const currentSevenTvEmoteSetId = document.getElementById("cfg-seventv-emote-set-id").value.trim();
-            const activeEmoteKey = currentSevenTvEmoteSetId || currentSevenTvUserId || currentChatroomId; // Nueva prioridad
-
-            if (isKickActiveGlobal) {
-                if (currentSevenTvEmoteSetId && currentSevenTvEmoteSetId !== lastLoadedSevenTvChatroomId) {
-                    load7TVEmotes(currentSevenTvEmoteSetId);
-                }
-            } else {
-                // Si está inactivo, resetear para poder reintentar al activar de nuevo
-                lastLoadedSevenTvChatroomId = "";
-            }
+            document.getElementById(tabId).classList.remove('hidden');
+            const currentTabBtn = document.getElementById(`btn-${tabId}`);
+            currentTabBtn.classList.add('active');
+            currentTabBtn.classList.remove('text-gray-400', 'hover:text-white');
         }
 
         function renderUserAliasesList() {
@@ -334,7 +303,7 @@
                         <span class="text-[10px] text-kick font-mono font-bold">${data.voice}</span>
                     </div>
                     <button type="button" onclick="deleteUserAlias('${data.username}')" class="text-red-400 hover:text-red-300 transition duration-150 p-1 ml-2 shrink-0" title="Restablecer a voz por defecto">
-                        <i class="fa-solid fa-user-minus text-[11px]"></i>
+                        <span class="text-[11px]">✕</span>
                     </button>
                 </div>
             `).join('');
@@ -350,9 +319,6 @@
             ws.onopen = () => {
                 log('🔌 Conectado al backend local.', 'system');
                 ws.send(JSON.stringify({ type: 'get_config' }));
-                
-                // Forzar un reinicio del ID de emotes cargados para que se autodetecte y cargue inmediatamente al iniciar
-                lastLoadedSevenTvChatroomId = "";
             };
 
             ws.onmessage = (event) => {
@@ -401,96 +367,8 @@
             );
         }
 
-        let sevenTvEmotes = [];
-        let sevenTvEmoteMap = {};
-        let lastLoadedSevenTvChatroomId = '';
-        let isKickActiveGlobal = false;
-
-        async function load7TVEmotes(sevenTvEmoteSetId) {
-            sevenTvEmotes = [];
-            sevenTvEmoteMap = {};
-            lastLoadedSevenTvChatroomId = '';
-            
-            if (!sevenTvEmoteSetId) {
-                console.warn("[7TV] No se proporcionó el Emote Set ID para cargar emotes.");
-                return;
-            }
-        
-            // Iniciamos un grupo en la consola de desarrollador (F12) para tener un seguimiento limpio
-            console.groupCollapsed("%c[7TV] Iniciando proceso de carga de emotes", "color: #53fc18; font-weight: bold;");
-
-            const url = `https://7tv.io/v3/emote-sets/${sevenTvEmoteSetId}`;
-            const metodoIntento = 'Emote Set ID';
-            
-            lastLoadedSevenTvChatroomId = sevenTvEmoteSetId;
-            
-            // Log en consola de desarrollador del intento actual
-            console.info(`%c➔ Intentando conectar a: ${url} (${metodoIntento})`, "color: #3b82f6;");
-            log(`[7TV] Buscando vía ${metodoIntento}...`, 'info');
-        
-            try {
-                const response = await fetch(url);
-                
-                // Si la respuesta no es satisfactoria (por ejemplo, 404 No Encontrado o 500)
-                if (!response.ok) {
-                    console.error(`%c❌ Falló conexión con ${metodoIntento}. Código HTTP: ${response.status} (${response.statusText})`, "color: #ef4444;");
-                    throw new Error(`Endpoint sin respuesta exitosa (HTTP ${response.status})`);
-                }
-
-                // Si la respuesta fue exitosa (HTTP 200)
-                console.log(`%c✔ Conexión exitosa con ${metodoIntento}! (HTTP ${response.status})`, "color: #10b981;");
-                const data = await response.json();
-
-                let emotesArray = [];
-                if (data && Array.isArray(data.emotes)) {
-                    emotesArray = data.emotes;
-                } else if (data && data.emote_set && Array.isArray(data.emote_set.emotes)) {
-                    emotesArray = data.emote_set.emotes;
-                }
-        
-                if (emotesArray.length > 0) {
-                    sevenTvEmotes = emotesArray;
-                    sevenTvEmoteMap = {};
-                    sevenTvEmotes.forEach(emote => {
-                        sevenTvEmoteMap[emote.name] = emote.id;
-                    });
-                    
-                    console.log(`%c[7TV] Se cargaron correctamente ${sevenTvEmotes.length} emotes mapeados en memoria.`, "color: #53fc18; font-weight: bold;");
-                    log(`[7TV] Éxito usando ${metodoIntento}. ${sevenTvEmotes.length} emotes cargados.`, 'success');
-                } else {
-                    console.warn("%c[7TV] Conexión establecida pero no se encontraron emotes en la respuesta de la API.", "color: #f59e0b;");
-                    log(`[7TV] Conectado a ${metodoIntento} pero la lista de emotes está vacía.`, 'info');
-                }
-            } catch (err) {
-                console.error(`%c❌ Error crítico en la carga de emotes de 7TV: ${err.message}`, "color: #ef4444; font-weight: bold;");
-                log(`[7TV] Error: No se pudo conectar a 7TV usando Emote Set ID.`, 'error');
-            } finally {
-                // Cerramos de forma limpia el grupo en la consola del navegador
-                console.groupEnd();
-            }
-        }
-
         function parseEmotes(text) {
-            let escaped = escapeHTML(text);
-            
-            // 1. Reemplazar emotes de 7TV
-            if (sevenTvEmotes && sevenTvEmotes.length > 0) {
-                // Crear un array de palabras y posibles emotes para el reemplazo
-                const wordsAndEmotes = escaped.split(/(\s+)/); // Dividir, manteniendo los espacios como elementos
-
-                escaped = wordsAndEmotes.map(part => {
-                    // Solo intentar reemplazar si es una palabra que podría ser un emote
-                    if (sevenTvEmoteMap[part] && !/\s/.test(part)) { // Asegurarse de que no es solo espacio
-                        const emoteId = sevenTvEmoteMap[part];
-                        // Usar 2x.webp para mejor calidad en general, el CSS se encarga del tamaño
-                        return `<img src="https://cdn.7tv.app/emote/${emoteId}/2x.webp" alt="${part}" title="${part}" class="inline-block h-6 w-auto align-middle mx-0.5" />`;
-                    }
-                    return part;
-                }).join(''); // Unir sin añadir espacios extra
-            }
-
-            // 2. Reemplazar emotes de Kick: [emote:id:name]
-            return escaped.replace(/\[emote:(\d+):([^\]]+)\]/g, (match, id, name) => {
+            return escapeHTML(text).replace(/\[emote:(\d+):([^\]]+)\]/g, (match, id, name) => {
                 return `<img src="https://files.kick.com/emotes/${id}/fullsize" alt="${name}" title="${name}" class="inline-block h-6 w-auto align-middle mx-0.5" />`;
             });
         }
@@ -522,24 +400,12 @@
                 logRow.innerHTML = `
                     ${timeSpan}
                     <span class="text-kick mr-1.5 flex items-center inline-flex shrink-0">
-                        <i class="fa-solid fa-volume-high mr-1"></i>
+                        <span class="mr-1">🔊</span>
                         <strong>${user}:</strong>
                     </span>
                     <span class="text-gray-100">${parseEmotes(message)}</span>
                 `;
             } 
-            // Canjes de Recompensa de Kick
-            else if (type === 'chat_reward_redemption_kick') {
-                logRow.className += 'border-yellow-500 text-yellow-300 bg-yellow-950/15 font-semibold text-[13px]';
-                messageCount++;
-                document.getElementById('msg-counter').innerText = `Mensajes: ${messageCount}`;
-                logRow.innerHTML = `
-                    ${timeSpan}
-                    <span class="text-yellow-400 mr-1.5 shrink-0"><i class="fa-solid fa-gift animate-pulse"></i></span>
-                    <span class="text-yellow-200 mr-1.5"><strong>${user}</strong> canjeó:</span>
-                    <span class="text-white bg-yellow-500/20 px-1.5 py-0.5 rounded border border-yellow-500/30 font-bold">${parseEmotes(message)}</span>
-                `;
-            }
             // Mensajes ordinarios de Kick
             else if (type === 'chat_message_kick') {
                 logRow.className += 'border-gray-700 text-gray-500';
@@ -547,7 +413,7 @@
                 document.getElementById('msg-counter').innerText = `Mensajes: ${messageCount}`;
                 logRow.innerHTML = `
                     ${timeSpan}
-                    <span class="text-kick/60 mr-1.5 shrink-0"><i class="fa-solid fa-comments"></i></span>
+                    <span class="text-kick/60 mr-1.5 shrink-0">💬</span>
                     <span class="text-gray-400 mr-1.5"><strong>${user}:</strong></span>
                     <span class="text-gray-400">${parseEmotes(message)}</span>
                 `;
@@ -632,36 +498,19 @@
                 <div class="flex items-center justify-between bg-darkBg/60 px-2.5 py-1 rounded border border-gray-800/60 hover:border-gray-700/60 transition duration-150 text-gray-300">
                     <span class="font-mono truncate select-all">${word}</span>
                     <button type="button" onclick="removeBannedWord(${index})" class="text-red-400 hover:text-red-300 transition duration-150 p-1 ml-2" title="Eliminar">
-                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                        <span class="text-[10px]">✕</span>
                     </button>
                 </div>
             `).join('');
         }
 
         function getUIConfig() {
-            // Parsear alias de voces de texto a objeto JSON
-            const aliasesRaw = document.getElementById('cfg-voice-aliases').value;
-            const VOICE_ALIASES = {};
-            aliasesRaw.split('\n').forEach(line => {
-                const parts = line.split(':');
-                if (parts.length >= 2) {
-                    const alias = parts[0].trim().toLowerCase();
-                    const voice = parts.slice(1).join(':').trim();
-                    if (alias && voice) {
-                        VOICE_ALIASES[alias] = voice;
-                    }
-                }
-            });
-
             return {
                 KICK_CHATROOM_ID: document.getElementById("cfg-chatroom-id").value.trim(),
-                SEVENTV_USER_ID: document.getElementById("cfg-seventv-user-id").value.trim(),
-                SEVENTV_EMOTE_SET_ID: document.getElementById("cfg-seventv-emote-set-id").value.trim(), // Nuevo campo
                 PUSHER_KEY: document.getElementById("cfg-pusher-key").value.trim(),
                 SPEAKERBOT_URL: document.getElementById("cfg-speakerbot-url").value.trim(),
                 VOICE_NAME: document.getElementById("cfg-voice").value.trim(),
                 COMMAND: document.getElementById("cfg-command").value.trim(),
-                VOICE_ALIASES: VOICE_ALIASES,
                 MAX_TEXT_LENGTH: parseInt(document.getElementById("cfg-max-text-length").value, 10) || 0
             };
         }
@@ -678,13 +527,7 @@
 
         // Cargar datos a los inputs de la UI
         function loadConfigToUI(config, bannedWords = []) {
-            const oldChatroomId = document.getElementById('cfg-chatroom-id').value;
-            const oldSevenTvUserId = document.getElementById('cfg-seventv-user-id').value;
-            const newChatroomId = config.KICK_CHATROOM_ID || '';
-            const newSevenTvUserId = config.SEVENTV_USER_ID || '';
-
-            document.getElementById('cfg-chatroom-id').value = newChatroomId;
-            document.getElementById('cfg-seventv-user-id').value = newSevenTvUserId;
+            document.getElementById('cfg-chatroom-id').value = config.KICK_CHATROOM_ID || '';
             document.getElementById('cfg-pusher-key').value = config.PUSHER_KEY || '32cbd69e4b950bf97679';
             document.getElementById('cfg-speakerbot-url').value = config.SPEAKERBOT_URL || 'ws://127.0.0.1:7580/';
             document.getElementById('cfg-voice').value = config.VOICE_NAME || 'Grim';
@@ -700,19 +543,8 @@
             }
             document.getElementById('cfg-voice-aliases').value = aliasesText;
 
-            // Cargar Palabras Prohibidas
             activeBannedWords = bannedWords || [];
             renderBannedWordsList();
-
-            // Cargar emotes de 7TV si cambió el chatroom ID o ID de 7TV o ID de Emote Set de 7TV o no se han cargado aún (solo si Kick está activo)
-            const newSevenTvEmoteSetId = config.SEVENTV_EMOTE_SET_ID || '';
-            const newEmoteKey = newSevenTvEmoteSetId || newSevenTvUserId || newChatroomId; // New logic for new key
-
-            // Recargar emotes solo si está activo y el ID de emotes ha cambiado o no se han cargado aún.
-            // La carga inicial al activar el bot se gestiona en updateStatusUI.
-            if (isKickActiveGlobal && newSevenTvEmoteSetId && newSevenTvEmoteSetId !== lastLoadedSevenTvChatroomId) {
-                load7TVEmotes(newSevenTvEmoteSetId);
-            }
         }
 
         // Guardar configuración desde el formulario
@@ -738,38 +570,13 @@
             }));
         }
 
-        // Actualizar estados visuales de la UI
         function updateStatusUI(status) {
-            // Guardar el estado anterior antes de actualizar el global
-            const wasKickActive = isKickActiveGlobal;
-            isKickActiveGlobal = !!status.kickActive;
-
             const kickDot = document.getElementById('kick-dot');
             const kickDotPing = document.getElementById('kick-dot-ping');
             const kickStatus = document.getElementById('kick-status');
             const btnStartKick = document.getElementById('btn-start-kick');
             const btnStopKick = document.getElementById('btn-stop-kick');
             const spIndicator = document.getElementById('speakerbot-status-indicator');
-
-            const currentSevenTvEmoteSetId = document.getElementById('cfg-seventv-emote-set-id').value.trim();
-
-            if (isKickActiveGlobal) {
-                // Si el bot de Kick está activo, y los emotes no están cargados O el ID es diferente al último cargado
-                if (currentSevenTvEmoteSetId && (currentSevenTvEmoteSetId !== lastLoadedSevenTvChatroomId || sevenTvEmotes.length === 0)) {
-                    // Si acaba de activarse el bot, esperamos un poco. Si ya estaba activo, cargamos inmediatamente (cambio de ID en caliente)
-                    const delay = wasKickActive ? 0 : 1500;
-                    setTimeout(() => {
-                        if (isKickActiveGlobal && currentSevenTvEmoteSetId) {
-                            load7TVEmotes(currentSevenTvEmoteSetId);
-                        }
-                    }, delay);
-                }
-            } else {
-                // Si está inactivo, resetear para poder reintentar al activar de nuevo
-                lastLoadedSevenTvChatroomId = "";
-                sevenTvEmotes = [];
-                sevenTvEmoteMap = {};
-            }
 
             // Estado de Kick
             if (status.kickConnected) {

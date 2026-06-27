@@ -1,6 +1,9 @@
 @echo off
-title Lanzador Kick-TTS App
-echo Iniciando Kick-TTS App...
-echo Liberando puertos y levantando el servidor en segundo plano...
-node kick-tts.js
-pause
+title Kick-TTS App
+if /i "%1"=="/silent" (
+    start "" /b node kick-tts.js
+) else (
+    echo Iniciando Kick-TTS App...
+    node kick-tts.js
+    pause
+)

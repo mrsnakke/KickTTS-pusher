@@ -1,19 +1,43 @@
-const express = require('express');
 const http = require('http');
+const fs = require('fs');
 const WebSocket = require('ws');
 const path = require('path');
 const { exec } = require('child_process');
 const eventBus = require('./event-bus');
 const configManager = require('./config-manager');
 const { isSpeakerbotActive } = require('./speakerbot');
-const userAliasManager = require('./user-alias-manager');
 
 const PORT = 3000;
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
-let serverInstance = null;
+const MIME = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.ico': 'image/x-icon',
+    '.svg': 'image/svg+xml',
+    '.woff2': 'font/woff2'
+};
+
 let wss = null;
 
-// Enviar datos a todos los frontends conectados
+function serveStatic(req, res) {
+    let filePath = req.url === '/' ? '/index.html' : req.url;
+    filePath = path.join(PUBLIC_DIR, filePath);
+    const ext = path.extname(filePath);
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('Not found');
+            return;
+        }
+        res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+        res.end(data);
+    });
+}
+
 function broadcastToUI(data) {
     if (!wss) return;
     wss.clients.forEach((client) => {
@@ -24,7 +48,6 @@ function broadcastToUI(data) {
 }
 
 function getSystemStatus() {
-    // Requerir de forma dinámica para evitar dependencias circulares
     const kickClient = require('./kick-client');
     return {
         kickActive: kickClient.isKickActive(),
@@ -34,37 +57,19 @@ function getSystemStatus() {
 }
 
 function sendStatusUpdate() {
-    broadcastToUI({
-        type: 'status_update',
-        status: getSystemStatus()
-    });
+    broadcastToUI({ type: 'status_update', status: getSystemStatus() });
 }
 
 function initUiServer() {
-    const app = express();
-    const server = http.createServer(app);
+    const server = http.createServer(serveStatic);
     wss = new WebSocket.Server({ server });
 
-    app.use(express.static(path.join(__dirname, '..', 'public')));
-    app.use(express.json());
-
-    // Listeners del bus de eventos para retransmitir cambios a la UI
-    eventBus.on('log', (logData) => {
-        broadcastToUI(logData);
-    });
-
-    eventBus.on('kick_status', () => {
-        sendStatusUpdate();
-    });
-
-    eventBus.on('speakerbot_status', () => {
-        sendStatusUpdate();
-    });
-
+    eventBus.on('log', (logData) => { broadcastToUI(logData); });
+    eventBus.on('kick_status', () => { sendStatusUpdate(); });
+    eventBus.on('speakerbot_status', () => { sendStatusUpdate(); });
     eventBus.on('config_updated', ({ config, bannedWords }) => {
         broadcastToUI({ type: 'config', config, bannedWords });
     });
-
     eventBus.on('user_aliases_updated', (userAliases) => {
         broadcastToUI({ type: 'user_aliases', userAliases });
     });
@@ -72,47 +77,22 @@ function initUiServer() {
     wss.on('connection', (ws) => {
         console.log('💻 Nueva conexión con la interfaz de usuario.');
 
-        // Enviar configuración y estados iniciales al conectar
-        ws.send(JSON.stringify({
-            type: 'config',
-            config: configManager.getConfig(),
-            bannedWords: configManager.getBannedWords()
-        }));
-
-        ws.send(JSON.stringify({
-            type: 'user_aliases',
-            userAliases: userAliasManager.getUserAliases()
-        }));
-
-        ws.send(JSON.stringify({
-            type: 'status_update',
-            status: getSystemStatus()
-        }));
+        ws.send(JSON.stringify({ type: 'config', config: configManager.getConfig(), bannedWords: configManager.getBannedWords() }));
+        ws.send(JSON.stringify({ type: 'user_aliases', userAliases: configManager.getUserAliases() }));
+        ws.send(JSON.stringify({ type: 'status_update', status: getSystemStatus() }));
 
         ws.on('message', (message) => {
             try {
                 const data = JSON.parse(message);
-
                 if (data.type === 'get_config') {
-                    ws.send(JSON.stringify({
-                        type: 'config',
-                        config: configManager.getConfig(),
-                        bannedWords: configManager.getBannedWords()
-                    }));
-                }
-                else if (data.type === 'save_config') {
+                    ws.send(JSON.stringify({ type: 'config', config: configManager.getConfig(), bannedWords: configManager.getBannedWords() }));
+                } else if (data.type === 'save_config') {
                     configManager.updateConfig(data.config, data.bannedWords);
-                }
-                else if (data.type === 'delete_user_alias') {
-                    userAliasManager.deleteUserAlias(data.username);
-                }
-                else if (data.type === 'toggle_bot') {
-                    eventBus.emit('toggle_bot_requested', {
-                        platform: data.platform, // 'kick'
-                        active: data.active
-                    });
-                }
-                else if (data.type === 'ping') {
+                } else if (data.type === 'delete_user_alias') {
+                    configManager.deleteUserAlias(data.username);
+                } else if (data.type === 'toggle_bot') {
+                    eventBus.emit('toggle_bot_requested', { platform: data.platform, active: data.active });
+                } else if (data.type === 'ping') {
                     ws.send(JSON.stringify({ type: 'ping_pong', timestamp: data.timestamp }));
                 }
             } catch (e) {
@@ -122,9 +102,6 @@ function initUiServer() {
 
         ws.on('close', () => {
             console.log('💻 Interfaz de usuario desconectada.');
-
-            // Tiempo de gracia de 5 segundos para recargas o recambios de pestaña.
-            // Si no se reconecta ninguna interfaz, el bot en segundo plano se apaga solo de forma limpia.
             setTimeout(() => {
                 if (wss.clients.size === 0) {
                     console.log('🔌 No hay interfaces de usuario conectadas. Apagando bot silencioso...');
@@ -140,7 +117,6 @@ function initUiServer() {
         console.log(`👉 Abre en tu navegador: http://localhost:${PORT}`);
         console.log('======================================================\n');
 
-        // Lanzar automáticamente la ventana independiente de la aplicación (App Mode) en Microsoft Edge o Google Chrome
         if (process.platform === 'win32') {
             exec('start msedge --app=http://localhost:3000');
         } else if (process.platform === 'darwin') {
@@ -149,10 +125,6 @@ function initUiServer() {
             exec('google-chrome --app=http://localhost:3000');
         }
     });
-
-    serverInstance = server;
 }
 
-module.exports = {
-    initUiServer
-};
+module.exports = { initUiServer };

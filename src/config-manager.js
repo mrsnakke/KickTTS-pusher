@@ -4,28 +4,25 @@ const eventBus = require('./event-bus');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const BANNED_WORDS_PATH = path.join(__dirname, '..', 'banned-words.json');
+const ALIASES_PATH = path.join(__dirname, '..', 'user-aliases.json');
 
 let bannedWords = [];
+let userAliases = {};
 
-// Default configuration
+// ponytail: single source of truth is config.json on disk; these defaults only apply on first run
 let config = {
     KICK_CHATROOM_ID: "4523166",
-    SEVENTV_USER_ID: "01GJ7PS7DR000CQ2WDRACYQ5EH",
-    SEVENTV_EMOTE_SET_ID: "01GJ7Q9840000CQ2WDRACYQ5FE", // Nuevo campo para Emote Set ID de 7TV
     PUSHER_KEY: "32cbd69e4b950bf97679",
     SPEAKERBOT_URL: "ws://127.0.0.1:7580/",
-    VOICE_NAME: "Grim",
+    VOICE_NAME: "Sabina",
     COMMAND: "!sp",
     VOICE_ALIASES: {
-        "andrés": "Andrés",
-        "andres": "Andrés",
         "ava": "Ava",
         "brian": "Brian",
-        "grim": "Grim",
         "jorge": "Jorge",
         "sabina": "Sabina"
     },
-    MAX_TEXT_LENGTH: 200
+    MAX_TEXT_LENGTH: 600
 };
 
 function loadBannedWords() {
@@ -35,7 +32,7 @@ function loadBannedWords() {
             bannedWords = JSON.parse(fileData);
             console.log('✅ Palabras prohibidas cargadas desde banned-words.json');
         } else {
-            bannedWords = ["puto", "puta", "maricon", "pendejo"];
+            bannedWords = ["cara de gato", "Caradegato", "puto", "puta", "maricon", "pendejo"];
             saveBannedWordsToFile();
         }
     } catch (e) {
@@ -97,6 +94,65 @@ function updateConfig(newConfig, newBannedWords) {
     eventBus.emit('config_updated', { config, bannedWords });
 }
 
+function loadUserAliases() {
+    try {
+        if (fs.existsSync(ALIASES_PATH)) {
+            const fileData = fs.readFileSync(ALIASES_PATH, 'utf8');
+            userAliases = JSON.parse(fileData);
+            console.log('✅ Aliases de usuarios cargados desde user-aliases.json');
+        } else {
+            userAliases = {};
+            saveUserAliasesToFile();
+        }
+    } catch (e) {
+        console.error('⚠️ Error al cargar user-aliases.json:', e.message);
+        userAliases = {};
+    }
+}
+
+function saveUserAliasesToFile() {
+    try {
+        fs.writeFileSync(ALIASES_PATH, JSON.stringify(userAliases, null, 2), 'utf8');
+        console.log('💾 Aliases de usuarios guardados en user-aliases.json');
+    } catch (e) {
+        console.error('❌ Error escribiendo user-aliases.json:', e.message);
+    }
+}
+
+function getUserAliases() {
+    return userAliases;
+}
+
+function getUserAlias(username) {
+    if (!username) return null;
+    return userAliases[username.toLowerCase()] || null;
+}
+
+function setUserAlias(username, voiceName) {
+    if (!username || !voiceName) return false;
+    const key = username.toLowerCase();
+    userAliases[key] = {
+        username: username,
+        voice: voiceName,
+        updatedAt: new Date().toISOString()
+    };
+    saveUserAliasesToFile();
+    eventBus.emit('user_aliases_updated', userAliases);
+    return true;
+}
+
+function deleteUserAlias(username) {
+    if (!username) return false;
+    const key = username.toLowerCase();
+    if (userAliases[key]) {
+        delete userAliases[key];
+        saveUserAliasesToFile();
+        eventBus.emit('user_aliases_updated', userAliases);
+        return true;
+    }
+    return false;
+}
+
 function containsBannedWords(message) {
     const lowerMessage = message.toLowerCase();
     return bannedWords.some(word => {
@@ -108,10 +164,15 @@ function containsBannedWords(message) {
 
 // Cargar automáticamente la configuración al iniciar
 loadConfig();
+loadUserAliases();
 
 module.exports = {
     getConfig,
     getBannedWords,
     updateConfig,
-    containsBannedWords
+    containsBannedWords,
+    getUserAliases,
+    getUserAlias,
+    setUserAlias,
+    deleteUserAlias
 };
