@@ -1,4 +1,16 @@
-# Kick-TTS
+<p align="center">
+  <span style="font-size:120px; font-weight:900; color:#53fc18; line-height:1; font-family:Arial, sans-serif;">K</span>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Node.js-18+-green.svg" alt="Node.js">
+  <img src="https://img.shields.io/badge/Platform-Windows-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/WebSocket-Pusher-purple.svg" alt="WebSocket">
+  <img src="https://img.shields.io/badge/TTS-Speaker.bot-orange.svg" alt="TTS">
+</p>
+
+---
 
 Bot de Texto-a-Voz para streams de [Kick.com](https://kick.com). Lee en voz alta los mensajes del chat usando **Speaker.bot** e incluye un panel de control web.
 
